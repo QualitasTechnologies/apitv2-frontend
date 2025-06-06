@@ -1,4 +1,3 @@
-
 import {
   BarChart3,
   Calculator,
@@ -12,6 +11,7 @@ import {
   Eye,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 import {
   Sidebar,
@@ -27,47 +27,47 @@ import {
 
 const menuItems = [
   {
-    title: "Dashboard",
+    titleKey: "nav.dashboard",
     url: "/",
     icon: Home,
   },
   {
-    title: "Mass Balance",
+    titleKey: "nav.massBalance",
     url: "/mass-balance",
     icon: Calculator,
   },
   {
-    title: "Tell Us About Grain",
+    titleKey: "nav.tellUsAboutGrain",
     url: "/tell-us-about-grain",
     icon: Wheat,
   },
   {
-    title: "Know Your Grains",
+    titleKey: "nav.knowYourGrains",
     url: "/know-your-grains",
     icon: Eye,
   },
   {
-    title: "Live Analysis",
+    titleKey: "nav.liveAnalysis",
     url: "/live-analysis",
     icon: Camera,
   },
   {
-    title: "Analytics",
+    titleKey: "nav.analytics",
     url: "/analytics",
     icon: LineChart,
   },
   {
-    title: "Data Reports",
+    titleKey: "nav.dataReports",
     url: "/data-reports",
     icon: FileText,
   },
   {
-    title: "Load Configurations",
-    url: "/load-configurations",
+    titleKey: "nav.settings",
+    url: "/settings",
     icon: Settings,
   },
   {
-    title: "Manuals",
+    titleKey: "nav.manuals",
     url: "/manuals",
     icon: BookOpen,
   },
@@ -75,6 +75,7 @@ const menuItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const { t } = useLanguage();
 
   return (
     <Sidebar className="bg-rice-primary border-0">
@@ -92,23 +93,23 @@ export function AppSidebar() {
       <SidebarContent className="p-4">
         <SidebarGroup>
           <SidebarGroupLabel className="text-rice-secondary font-semibold mb-4">
-            Navigation
+            {t('nav.navigation')}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
-                    className={`text-white hover:bg-white hover:text-rice-primary transition-all duration-200 hover:scale-105 mb-1 ${
+                    className={`text-white/90 hover:bg-white/10 hover:text-white hover:shadow-lg hover:border-l-4 hover:border-rice-secondary transition-all duration-300 ease-in-out hover:scale-[1.02] mb-1 rounded-lg backdrop-blur-sm ${
                       location.pathname === item.url 
-                        ? 'bg-white text-rice-primary' 
-                        : ''
+                        ? 'bg-white/15 text-white border-l-4 border-rice-secondary shadow-md' 
+                        : 'hover:bg-gradient-to-r hover:from-white/10 hover:to-white/5'
                     }`}
                   >
                     <Link to={item.url}>
-                      <item.icon className="w-5 h-5" />
-                      <span className="font-medium">{item.title}</span>
+                      <item.icon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                      <span className="font-medium transition-all duration-300">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
