@@ -3,26 +3,140 @@ import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Link } from "react-router-dom";
-import { Wheat, ArrowRight } from "lucide-react";
+import { Wheat, ArrowRight, Plus, X } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
+
+interface CustomProperty {
+  id: string;
+  name: string;
+  value: string;
+  unit?: string;
+}
 
 const TellUsAboutGrain = () => {
-  const [grainType, setGrainType] = useState("");
+  const { t } = useLanguage();
+  
+  // TellUsAboutGrain state
   const [variety, setVariety] = useState("");
   const [process, setProcess] = useState("");
   const [testing, setTesting] = useState("");
   const [sampling, setSampling] = useState("");
-  const [batch, setBatch] = useState("");
+  const [batchNumber, setBatchNumber] = useState("");
+  
+  // Dialog states for "Others" option
+  const [isVarietyDialogOpen, setIsVarietyDialogOpen] = useState(false);
+  const [isProcessDialogOpen, setIsProcessDialogOpen] = useState(false);
+  const [customVariety, setCustomVariety] = useState("");
+  const [customProcess, setCustomProcess] = useState("");
 
-  const isFormComplete = grainType && variety && process && testing && sampling && batch;
+  // KnowYourGrains state
+  const [geoProperties, setGeoProperties] = useState({
+    length: "",
+    breadth: "",
+    weight: "",
+    aspectRatio: "",
+    hardness: ""
+  });
+
+  const [chemicalProperties, setChemicalProperties] = useState({
+    protein: "",
+    carbohydrate: "",
+    vitamin: "",
+    mineral: "",
+    lipids: ""
+  });
+
+  const [gmadProperties, setGmadProperties] = useState({
+    gelatinization: "",
+    moisture: "",
+    age: "",
+    density: ""
+  });
+
+  const [customProperties, setCustomProperties] = useState<CustomProperty[]>([]);
+  const [isCustomPropertyDialogOpen, setIsCustomPropertyDialogOpen] = useState(false);
+  const [newProperty, setNewProperty] = useState({
+    name: "",
+    value: "",
+    unit: ""
+  });
+
+  const isFormComplete = variety && process && testing && sampling && batchNumber;
+
+  // TellUsAboutGrain handlers
+  const handleVarietyChange = (value: string) => {
+    if (value === "others") {
+      setIsVarietyDialogOpen(true);
+    } else {
+      setVariety(value);
+    }
+  };
+
+  const handleProcessChange = (value: string) => {
+    if (value === "others") {
+      setIsProcessDialogOpen(true);
+    } else {
+      setProcess(value);
+    }
+  };
+
+  const handleCustomVarietySubmit = () => {
+    if (customVariety.trim()) {
+      setVariety(customVariety.trim());
+      setCustomVariety("");
+      setIsVarietyDialogOpen(false);
+    }
+  };
+
+  const handleCustomProcessSubmit = () => {
+    if (customProcess.trim()) {
+      setProcess(customProcess.trim());
+      setCustomProcess("");
+      setIsProcessDialogOpen(false);
+    }
+  };
+
+  // KnowYourGrains handlers
+  const updateGeoProperty = (property: string, value: string) => {
+    setGeoProperties(prev => ({ ...prev, [property]: value }));
+  };
+
+  const updateChemicalProperty = (property: string, value: string) => {
+    setChemicalProperties(prev => ({ ...prev, [property]: value }));
+  };
+
+  const updateGmadProperty = (property: string, value: string) => {
+    setGmadProperties(prev => ({ ...prev, [property]: value }));
+  };
+
+  const handleAddProperty = () => {
+    if (newProperty.name && newProperty.value) {
+      const property: CustomProperty = {
+        id: Date.now().toString(),
+        name: newProperty.name,
+        value: newProperty.value,
+        unit: newProperty.unit || undefined
+      };
+      setCustomProperties(prev => [...prev, property]);
+      setNewProperty({ name: "", value: "", unit: "" });
+      setIsCustomPropertyDialogOpen(false);
+    }
+  };
+
+  const removeCustomProperty = (id: string) => {
+    setCustomProperties(prev => prev.filter(prop => prop.id !== id));
+  };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <PageHeader 
         title="Tell Us About Your Grain" 
-        subtitle="Provide sample categorization information"
+        subtitle="Provide sample categorization information and grain properties"
       />
       
       <div className="flex-1 overflow-auto p-6">
@@ -36,131 +150,138 @@ const TellUsAboutGrain = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Grain Type */}
-                <div className="space-y-4">
-                  <Label className="text-lg font-semibold">Grain Type</Label>
-                  <RadioGroup value={grainType} onValueChange={setGrainType}>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="paddy" id="paddy" />
-                      <Label htmlFor="paddy" className="cursor-pointer font-medium">Paddy</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="rice" id="rice" />
-                      <Label htmlFor="rice" className="cursor-pointer font-medium">Rice</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Variety */}
                 <div className="space-y-4">
                   <Label className="text-lg font-semibold">Variety</Label>
-                  <RadioGroup value={variety} onValueChange={setVariety}>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="jsr" id="jsr" />
-                      <Label htmlFor="jsr" className="cursor-pointer font-medium">JSR</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="hmt" id="hmt" />
-                      <Label htmlFor="hmt" className="cursor-pointer font-medium">HMT</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="basmati" id="basmati" />
-                      <Label htmlFor="basmati" className="cursor-pointer font-medium">BASMATI</Label>
-                    </div>
-                  </RadioGroup>
+                  <Select value={variety} onValueChange={handleVarietyChange}>
+                    <SelectTrigger className="h-12 border-2 hover:border-rice-primary transition-colors">
+                      <SelectValue placeholder="Select variety">
+                        {variety && ![
+                          "ambemohar", "sona", "adt", "jsr", "gobindobhog", "hmt", "indrayani", "jeera samba", 
+                          "rnr", "mogra", "jaya", "matta", "parmal", "ponni", "pusa basmati", "sharbati", 
+                          "sona masuri", "kolam", "bpt", "katarni", "mtu 1010", "ir 64", "rpn", "ranjith", 
+                          "cauvery", "baismutti", "vnr", "1509", "1121", "others"
+                        ].includes(variety) ? variety : undefined}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ambemohar">Ambemohar</SelectItem>
+                      <SelectItem value="sona">Sona</SelectItem>
+                      <SelectItem value="adt">ADT</SelectItem>
+                      <SelectItem value="jsr">JSR</SelectItem>
+                      <SelectItem value="gobindobhog">Gobindobhog</SelectItem>
+                      <SelectItem value="hmt">HMT</SelectItem>
+                      <SelectItem value="indrayani">Indrayani</SelectItem>
+                      <SelectItem value="jeera samba">Jeera Samba</SelectItem>
+                      <SelectItem value="rnr">RNR</SelectItem>
+                      <SelectItem value="mogra">Mogra</SelectItem>
+                      <SelectItem value="jaya">Jaya</SelectItem>
+                      <SelectItem value="matta">Matta</SelectItem>
+                      <SelectItem value="parmal">Parmal</SelectItem>
+                      <SelectItem value="ponni">Ponni</SelectItem>
+                      <SelectItem value="pusa basmati">Pusa Basmati</SelectItem>
+                      <SelectItem value="sharbati">Sharbati</SelectItem>
+                      <SelectItem value="sona masuri">Sona Masuri</SelectItem>
+                      <SelectItem value="kolam">Kolam</SelectItem>
+                      <SelectItem value="bpt">BPT</SelectItem>
+                      <SelectItem value="katarni">Katarni</SelectItem>
+                      <SelectItem value="mtu 1010">MTU 1010</SelectItem>
+                      <SelectItem value="ir 64">IR 64</SelectItem>
+                      <SelectItem value="rpn">RPN</SelectItem>
+                      <SelectItem value="ranjith">Ranjith</SelectItem>
+                      <SelectItem value="cauvery">Cauvery</SelectItem>
+                      <SelectItem value="baismutti">Baismutti</SelectItem>
+                      <SelectItem value="vnr">VNR</SelectItem>
+                      <SelectItem value="1509">1509</SelectItem>
+                      <SelectItem value="1121">1121</SelectItem>
+                      <SelectItem value="others">Others</SelectItem>
+                      {variety && ![
+                        "ambemohar", "sona", "adt", "jsr", "gobindobhog", "hmt", "indrayani", "jeera samba", 
+                        "rnr", "mogra", "jaya", "matta", "parmal", "ponni", "pusa basmati", "sharbati", 
+                        "sona masuri", "kolam", "bpt", "katarni", "mtu 1010", "ir 64", "rpn", "ranjith", 
+                        "cauvery", "baismutti", "vnr", "1509", "1121", "others"
+                      ].includes(variety) && (
+                        <SelectItem value={variety}>{variety}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Process */}
                 <div className="space-y-4">
                   <Label className="text-lg font-semibold">Process</Label>
-                  <RadioGroup value={process} onValueChange={setProcess}>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="parboiled" id="parboiled" />
-                      <Label htmlFor="parboiled" className="cursor-pointer font-medium">Parboiled</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="super-aging" id="super-aging" />
-                      <Label htmlFor="super-aging" className="cursor-pointer font-medium">Super Aging</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="raw" id="raw" />
-                      <Label htmlFor="raw" className="cursor-pointer font-medium">Raw</Label>
-                    </div>
-                  </RadioGroup>
+                  <Select value={process} onValueChange={handleProcessChange}>
+                    <SelectTrigger className="h-12 border-2 hover:border-rice-primary transition-colors">
+                      <SelectValue placeholder="Select process">
+                        {process && !["parboiled", "super-aging", "raw", "others"].includes(process) ? process : undefined}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="parboiled">Parboiled</SelectItem>
+                      <SelectItem value="super-aging">Super Aging</SelectItem>
+                      <SelectItem value="raw">Raw</SelectItem>
+                      <SelectItem value="others">Others</SelectItem>
+                      {process && !["parboiled", "super-aging", "raw", "others"].includes(process) && (
+                        <SelectItem value={process}>{process}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Secondary Selection */}
+          {/* Testing Parameters */}
           <Card className="animate-fade-in" style={{ animationDelay: "200ms" }}>
             <CardHeader>
               <CardTitle className="text-rice-primary">Testing Parameters</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Testing Options */}
+                {/* Testing Type */}
                 <div className="space-y-4">
                   <Label className="text-lg font-semibold">Testing Type</Label>
-                  <RadioGroup value={testing} onValueChange={setTesting}>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="individual" id="individual" />
-                      <Label htmlFor="individual" className="cursor-pointer font-medium">Individual</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="batch" id="batch" />
-                      <Label htmlFor="batch" className="cursor-pointer font-medium">Batch</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="milling-batch" id="milling-batch" />
-                      <Label htmlFor="milling-batch" className="cursor-pointer font-medium">Milling Batch</Label>
-                    </div>
-                  </RadioGroup>
+                  <Select value={testing} onValueChange={setTesting}>
+                    <SelectTrigger className="h-12 border-2 hover:border-rice-primary transition-colors">
+                      <SelectValue placeholder="Select testing type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="individual">Individual</SelectItem>
+                      <SelectItem value="batch">Batch</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Sampling Technique */}
                 <div className="space-y-4">
                   <Label className="text-lg font-semibold">Sampling Technique</Label>
-                  <RadioGroup value={sampling} onValueChange={setSampling}>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="random" id="random" />
-                      <Label htmlFor="random" className="cursor-pointer font-medium">Random</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="systematic" id="systematic" />
-                      <Label htmlFor="systematic" className="cursor-pointer font-medium">Systematic</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="stratified" id="stratified" />
-                      <Label htmlFor="stratified" className="cursor-pointer font-medium">Stratified</Label>
-                    </div>
-                  </RadioGroup>
+                  <Select value={sampling} onValueChange={setSampling}>
+                    <SelectTrigger className="h-12 border-2 hover:border-rice-primary transition-colors">
+                      <SelectValue placeholder="Select sampling technique" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="systematic">Systematic</SelectItem>
+                      <SelectItem value="stratified">Stratified</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {/* Batch Selection */}
+                {/* Batch Number */}
                 <div className="space-y-4">
-                  <Label className="text-lg font-semibold">Batch Type</Label>
-                  <RadioGroup value={batch} onValueChange={setBatch}>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="bin" id="bin" />
-                      <Label htmlFor="bin" className="cursor-pointer font-medium">Bin</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="dryer" id="dryer" />
-                      <Label htmlFor="dryer" className="cursor-pointer font-medium">Dryer</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
-                      <RadioGroupItem value="parboiling" id="parboiling" />
-                      <Label htmlFor="parboiling" className="cursor-pointer font-medium">Parboiling</Label>
-                    </div>
-                  </RadioGroup>
+                  <Label className="text-lg font-semibold">Batch Number</Label>
+                  <Input 
+                    value={batchNumber} 
+                    onChange={(e) => setBatchNumber(e.target.value)}
+                    placeholder="Enter batch number"
+                    className="h-12 border-2 hover:border-rice-primary transition-colors"
+                  />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Summary */}
+          {/* Selection Summary */}
           {isFormComplete && (
             <Card className="animate-scale-in">
               <CardHeader>
@@ -168,10 +289,6 @@ const TellUsAboutGrain = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="font-semibold text-gray-600">Grain Type:</span>
-                    <p className="font-medium capitalize">{grainType}</p>
-                  </div>
                   <div>
                     <span className="font-semibold text-gray-600">Variety:</span>
                     <p className="font-medium uppercase">{variety}</p>
@@ -189,29 +306,379 @@ const TellUsAboutGrain = () => {
                     <p className="font-medium capitalize">{sampling}</p>
                   </div>
                   <div>
-                    <span className="font-semibold text-gray-600">Batch:</span>
-                    <p className="font-medium capitalize">{batch}</p>
+                    <span className="font-semibold text-gray-600">Batch Number:</span>
+                    <p className="font-medium">{batchNumber}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Action Button */}
-          <div className="flex justify-center">
-            <Link to="/know-your-grains">
+          {/* Properties Tables from KnowYourGrains */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Geo Properties */}
+            <Card className="animate-fade-in" style={{ animationDelay: "400ms" }}>
+              <CardHeader>
+                <CardTitle className="text-rice-primary">{t('knowGrains.geoProperties')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="length" className="font-medium">{t('knowGrains.length')}</Label>
+                    <Input
+                      id="length"
+                      type="number"
+                      placeholder="5.5"
+                      value={geoProperties.length}
+                      onChange={(e) => updateGeoProperty('length', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="breadth" className="font-medium">{t('knowGrains.breadth')}</Label>
+                    <Input
+                      id="breadth"
+                      type="number"
+                      placeholder="2.3"
+                      value={geoProperties.breadth}
+                      onChange={(e) => updateGeoProperty('breadth', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="weight" className="font-medium">{t('knowGrains.weight')}</Label>
+                    <Input
+                      id="weight"
+                      type="number"
+                      placeholder="22.5"
+                      value={geoProperties.weight}
+                      onChange={(e) => updateGeoProperty('weight', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="aspectRatio" className="font-medium">{t('knowGrains.aspectRatio')}</Label>
+                    <Input
+                      id="aspectRatio"
+                      type="number"
+                      placeholder="2.4"
+                      value={geoProperties.aspectRatio}
+                      onChange={(e) => updateGeoProperty('aspectRatio', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="hardness" className="font-medium">{t('knowGrains.hardness')}</Label>
+                    <Input
+                      id="hardness"
+                      type="number"
+                      placeholder="45"
+                      value={geoProperties.hardness}
+                      onChange={(e) => updateGeoProperty('hardness', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Chemical Properties */}
+            <Card className="animate-fade-in" style={{ animationDelay: "500ms" }}>
+              <CardHeader>
+                <CardTitle className="text-rice-primary">{t('knowGrains.chemicalProperties')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="protein" className="font-medium">{t('knowGrains.protein')}</Label>
+                    <Input
+                      id="protein"
+                      type="number"
+                      placeholder="7.2"
+                      value={chemicalProperties.protein}
+                      onChange={(e) => updateChemicalProperty('protein', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="carbohydrate" className="font-medium">{t('knowGrains.carbohydrate')}</Label>
+                    <Input
+                      id="carbohydrate"
+                      type="number"
+                      placeholder="78.9"
+                      value={chemicalProperties.carbohydrate}
+                      onChange={(e) => updateChemicalProperty('carbohydrate', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="vitamin" className="font-medium">{t('knowGrains.vitamin')}</Label>
+                    <Input
+                      id="vitamin"
+                      type="number"
+                      placeholder="0.4"
+                      value={chemicalProperties.vitamin}
+                      onChange={(e) => updateChemicalProperty('vitamin', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="mineral" className="font-medium">{t('knowGrains.mineral')}</Label>
+                    <Input
+                      id="mineral"
+                      type="number"
+                      placeholder="1.3"
+                      value={chemicalProperties.mineral}
+                      onChange={(e) => updateChemicalProperty('mineral', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="lipids" className="font-medium">{t('knowGrains.lipids')}</Label>
+                    <Input
+                      id="lipids"
+                      type="number"
+                      placeholder="2.8"
+                      value={chemicalProperties.lipids}
+                      onChange={(e) => updateChemicalProperty('lipids', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Gmad Properties */}
+            <Card className="animate-fade-in" style={{ animationDelay: "600ms" }}>
+              <CardHeader>
+                <CardTitle className="text-rice-primary">{t('knowGrains.gmadProperties')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="gelatinization" className="font-medium">{t('knowGrains.gelatinization')}</Label>
+                    <Input
+                      id="gelatinization"
+                      type="number"
+                      placeholder="65"
+                      value={gmadProperties.gelatinization}
+                      onChange={(e) => updateGmadProperty('gelatinization', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="moisture" className="font-medium">{t('knowGrains.moisture')}</Label>
+                    <Input
+                      id="moisture"
+                      type="number"
+                      placeholder="14.5"
+                      value={gmadProperties.moisture}
+                      onChange={(e) => updateGmadProperty('moisture', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="age" className="font-medium">{t('knowGrains.age')}</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      placeholder="6"
+                      value={gmadProperties.age}
+                      onChange={(e) => updateGmadProperty('age', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="density" className="font-medium">{t('knowGrains.density')}</Label>
+                    <Input
+                      id="density"
+                      type="number"
+                      placeholder="1.4"
+                      value={gmadProperties.density}
+                      onChange={(e) => updateGmadProperty('density', e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Custom Properties */}
+          {customProperties.length > 0 && (
+            <Card className="animate-fade-in">
+              <CardHeader>
+                <CardTitle className="text-rice-primary">Custom Properties</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {customProperties.map((property) => (
+                    <div key={property.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium">{property.name}</div>
+                        <div className="text-sm text-gray-600">
+                          {property.value} {property.unit && `(${property.unit})`}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeCustomProperty(property.id)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex justify-center space-x-4">
+            <Dialog open={isCustomPropertyDialogOpen} onOpenChange={setIsCustomPropertyDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline"
+                  className="flex items-center space-x-2 px-6 py-3"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{t('knowGrains.addMoreInfo')}</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{t('knowGrains.addProperty')}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="property-name">{t('knowGrains.propertyName')}</Label>
+                    <Input
+                      id="property-name"
+                      value={newProperty.name}
+                      onChange={(e) => setNewProperty(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., Starch Content"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="property-value">{t('knowGrains.propertyValue')}</Label>
+                    <Input
+                      id="property-value"
+                      value={newProperty.value}
+                      onChange={(e) => setNewProperty(prev => ({ ...prev, value: e.target.value }))}
+                      placeholder="e.g., 75.2"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="property-unit">{t('knowGrains.propertyUnit')}</Label>
+                    <Input
+                      id="property-unit"
+                      value={newProperty.unit}
+                      onChange={(e) => setNewProperty(prev => ({ ...prev, unit: e.target.value }))}
+                      placeholder="e.g., %"
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsCustomPropertyDialogOpen(false)}>
+                      {t('knowGrains.cancel')}
+                    </Button>
+                    <Button onClick={handleAddProperty}>
+                      {t('knowGrains.add')}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            
+            <Link to="/live-analysis">
               <Button 
-                disabled={!isFormComplete}
-                className="bg-rice-secondary text-rice-primary hover:bg-rice-secondary/90 px-12 py-6 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                size="lg"
+                className="bg-rice-secondary text-rice-primary hover:bg-rice-secondary/90 px-8 py-3 font-bold"
               >
-                GO
-                <ArrowRight className="w-6 h-6 ml-2" />
+                {t('knowGrains.continueToLive')}
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
           </div>
         </div>
       </div>
+
+      {/* Variety Dialog */}
+      <Dialog open={isVarietyDialogOpen} onOpenChange={setIsVarietyDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enter Custom Variety</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="custom-variety">Variety Name</Label>
+              <Input
+                id="custom-variety"
+                value={customVariety}
+                onChange={(e) => setCustomVariety(e.target.value)}
+                placeholder="Enter variety name"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCustomVarietySubmit();
+                  }
+                }}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsVarietyDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCustomVarietySubmit}>
+                Add
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Process Dialog */}
+      <Dialog open={isProcessDialogOpen} onOpenChange={setIsProcessDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enter Custom Process</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="custom-process">Process Name</Label>
+              <Input
+                id="custom-process"
+                value={customProcess}
+                onChange={(e) => setCustomProcess(e.target.value)}
+                placeholder="Enter process name"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCustomProcessSubmit();
+                  }
+                }}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsProcessDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCustomProcessSubmit}>
+                Add
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

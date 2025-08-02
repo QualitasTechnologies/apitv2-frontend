@@ -9,9 +9,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import LoadingPage from "@/components/LoadingPage";
 import Dashboard from "./pages/Dashboard";
-import MassBalance from "./pages/MassBalance";
 import TellUsAboutGrain from "./pages/TellUsAboutGrain";
-import KnowYourGrains from "./pages/KnowYourGrains";
 import LiveAnalysis from "./pages/LiveAnalysis";
 import Analytics from "./pages/Analytics";
 import DataReports from "./pages/DataReports";
@@ -45,9 +43,7 @@ const App = () => {
                 <main className="flex-1 flex flex-col overflow-hidden">
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
-                    <Route path="/mass-balance" element={<MassBalance />} />
                     <Route path="/tell-us-about-grain" element={<TellUsAboutGrain />} />
-                    <Route path="/know-your-grains" element={<KnowYourGrains />} />
                     <Route path="/live-analysis" element={<LiveAnalysis />} />
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/data-reports" element={<DataReports />} />

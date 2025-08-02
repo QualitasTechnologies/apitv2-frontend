@@ -48,13 +48,6 @@ const Dashboard = () => {
 
   const quickActions = [
     {
-      title: "Mass Balance",
-      description: "Calculate component breakdown",
-      icon: Calculator,
-      url: "/mass-balance",
-      color: "bg-blue-500",
-    },
-    {
       title: "Live Analysis",
       description: "Start real-time detection",
       icon: Camera,
@@ -74,6 +67,13 @@ const Dashboard = () => {
       icon: FileText,
       url: "/data-reports",
       color: "bg-orange-500",
+    },
+    {
+      title: "Tell Us About Grain",
+      description: "Provide sample categorization",
+      icon: Wheat,
+      url: "/tell-us-about-grain",
+      color: "bg-blue-500",
     },
   ];
 

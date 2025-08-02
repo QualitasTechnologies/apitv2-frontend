@@ -32,19 +32,9 @@ const menuItems = [
     icon: Home,
   },
   {
-    titleKey: "nav.massBalance",
-    url: "/mass-balance",
-    icon: Calculator,
-  },
-  {
     titleKey: "nav.tellUsAboutGrain",
     url: "/tell-us-about-grain",
     icon: Wheat,
-  },
-  {
-    titleKey: "nav.knowYourGrains",
-    url: "/know-your-grains",
-    icon: Eye,
   },
   {
     titleKey: "nav.liveAnalysis",
