@@ -1,10 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { 
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { 
   LineChart, 
   Line, 
@@ -15,535 +37,477 @@ import {
   Legend, 
   ResponsiveContainer,
   BarChart,
-  Bar
+  Bar,
+  PieChart,
+  Pie,
+  Cell
 } from "recharts";
-import { BarChart3, LineChart as LineChartIcon, TrendingUp } from "lucide-react";
+import { 
+  CalendarIcon, 
+  LineChart as LineChartIcon, 
+  BarChart3, 
+  PieChart as PieChartIcon,
+  Settings,
+  Check,
+  ChevronsUpDown
+} from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+
+// Type definitions
+interface DateRange {
+  from?: Date;
+  to?: Date;
+}
+
+interface AnalyticsFilters {
+  dateRange: DateRange;
+  viewMode: 'machine-wise' | 'batch-wise';
+  selectedMachine?: string;
+  chartType: 'bar' | 'pie' | 'line';
+  selectedCategories: string[];
+}
 
 const Analytics = () => {
-  const [selectedParameters, setSelectedParameters] = useState({
-    // Good Rice parameters
-    headRice: true,
-    threeFourthHead: false,
-    halfBrokens: false,
-    quarterFineBrokens: false,
-    tips: false,
-    
-    // Rejection parameters
-    chalkyBellyCore: false,
-    yellow: false,
-    black: false,
-    immatureGreen: false,
-    peckyGrains: false,
-    discolored: false,
-    chalkyWhole: false,
-    blackTips: false,
-    burnt: false,
-    spot: false,
-    discoloration: false,
-    
-    // Foreign Matter parameters
-    red: false,
-    husk: false,
-    paddy: false,
-    chaff: false,
-    straw: false,
-    sticks: false,
-    brownRice: false,
-    stones: false,
-    mud: false,
-    thread: false,
-    plastic: false,
-    metals: false,
-    glass: false,
-    
-    // Category totals
-    goodRiceTotal: true,
-    rejectionsTotal: true,
-    foreignMatterTotal: false
+  const [filters, setFilters] = useState<AnalyticsFilters>({
+    dateRange: {
+      from: new Date(2024, 0, 1), // January 1, 2024
+      to: new Date(2024, 5, 30)   // June 30, 2024
+    },
+    viewMode: 'machine-wise',
+    selectedMachine: 'polisher',
+    chartType: 'bar',
+    selectedCategories: ['accepted', 'rejected']
   });
-  
-  const [chartType, setChartType] = useState<'line' | 'bar'>('line');
 
-  // Function to normalize a data point to sum to 100%
-  const normalizeDataPoint = (dataPoint: any) => {
-    // Extract all individual parameter values (excluding date and totals)
-    const parameterKeys = [
-      'headRice', 'threeFourthHead', 'halfBrokens', 'quarterFineBrokens', 'tips',
-      'chalkyBellyCore', 'yellow', 'black', 'immatureGreen', 'peckyGrains', 'discolored',
-      'chalkyWhole', 'blackTips', 'burnt', 'spot', 'discoloration',
-      'red', 'husk', 'paddy', 'chaff', 'straw', 'sticks', 'brownRice',
-      'stones', 'mud', 'thread', 'plastic', 'metals', 'glass'
-    ];
-    
-    // Calculate current total
-    const currentTotal = parameterKeys.reduce((sum, key) => sum + (dataPoint[key] || 0), 0);
-    
-    // Normalization factor
-    const normalizationFactor = 100 / currentTotal;
-    
-    // Create normalized data point
-    const normalized = { ...dataPoint };
-    
-    // Normalize all parameters
-    parameterKeys.forEach(key => {
-      if (normalized[key]) {
-        normalized[key] = normalized[key] * normalizationFactor;
-      }
-    });
-    
-    // Calculate normalized totals
-    const goodRiceKeys = ['headRice', 'threeFourthHead', 'halfBrokens', 'quarterFineBrokens', 'tips'];
-    const harvestRejectionKeys = ['chalkyBellyCore', 'yellow', 'black', 'immatureGreen', 'peckyGrains', 'discolored'];
-    const processRejectionKeys = ['chalkyWhole', 'blackTips', 'burnt', 'spot', 'discoloration'];
-    const organicForeignKeys = ['red', 'husk', 'paddy', 'chaff', 'straw', 'sticks', 'brownRice'];
-    const inorganicForeignKeys = ['stones', 'mud', 'thread', 'plastic', 'metals', 'glass'];
-    
-    normalized.goodRiceTotal = goodRiceKeys.reduce((sum, key) => sum + (normalized[key] || 0), 0);
-    normalized.rejectionsTotal = 
-      harvestRejectionKeys.reduce((sum, key) => sum + (normalized[key] || 0), 0) +
-      processRejectionKeys.reduce((sum, key) => sum + (normalized[key] || 0), 0);
-    normalized.foreignMatterTotal = 
-      organicForeignKeys.reduce((sum, key) => sum + (normalized[key] || 0), 0) +
-      inorganicForeignKeys.reduce((sum, key) => sum + (normalized[key] || 0), 0);
-    
-    return normalized;
-  };
+  const [datePickerOpen, setDatePickerOpen] = useState({ from: false, to: false });
+  const [categoryOpen, setCategoryOpen] = useState(false);
 
-  // Raw data that will be normalized
-  const rawData = [
-    { 
-      date: '2024-01',
-      // Good Rice
-      headRice: 45.2, threeFourthHead: 25.8, halfBrokens: 12.3, quarterFineBrokens: 8.1, tips: 3.6,
-      // Harvest Rejections
-      chalkyBellyCore: 1.2, yellow: 0.8, black: 0.3, immatureGreen: 0.5, peckyGrains: 0.2, discolored: 0.4,
-      // Process Rejections
-      chalkyWhole: 0.6, blackTips: 0.3, burnt: 0.1, spot: 0.2, discoloration: 0.3,
-      // Organic Foreign Matter
-      red: 0.1, husk: 0.2, paddy: 0.1, chaff: 0.1, straw: 0.05, sticks: 0.05, brownRice: 0.1,
-      // Inorganic Foreign Matter
-      stones: 0.05, mud: 0.02, thread: 0.01, plastic: 0.01, metals: 0.005, glass: 0.005
-    },
-    { 
-      date: '2024-02',
-      headRice: 46.1, threeFourthHead: 26.2, halfBrokens: 11.8, quarterFineBrokens: 7.9, tips: 3.5,
-      chalkyBellyCore: 1.1, yellow: 0.7, black: 0.2, immatureGreen: 0.4, peckyGrains: 0.2, discolored: 0.3,
-      chalkyWhole: 0.5, blackTips: 0.2, burnt: 0.1, spot: 0.1, discoloration: 0.2,
-      red: 0.09, husk: 0.18, paddy: 0.09, chaff: 0.09, straw: 0.04, sticks: 0.04, brownRice: 0.09,
-      stones: 0.04, mud: 0.018, thread: 0.009, plastic: 0.009, metals: 0.004, glass: 0.004
-    },
-    { 
-      date: '2024-03',
-      headRice: 47.3, threeFourthHead: 26.8, halfBrokens: 11.2, quarterFineBrokens: 7.5, tips: 3.2,
-      chalkyBellyCore: 1.0, yellow: 0.6, black: 0.2, immatureGreen: 0.3, peckyGrains: 0.1, discolored: 0.3,
-      chalkyWhole: 0.4, blackTips: 0.2, burnt: 0.05, spot: 0.1, discoloration: 0.15,
-      red: 0.08, husk: 0.16, paddy: 0.08, chaff: 0.08, straw: 0.03, sticks: 0.03, brownRice: 0.08,
-      stones: 0.03, mud: 0.015, thread: 0.008, plastic: 0.008, metals: 0.003, glass: 0.003
-    },
-    { 
-      date: '2024-04',
-      headRice: 48.1, threeFourthHead: 27.2, halfBrokens: 10.8, quarterFineBrokens: 7.2, tips: 3.0,
-      chalkyBellyCore: 0.9, yellow: 0.5, black: 0.15, immatureGreen: 0.25, peckyGrains: 0.1, discolored: 0.25,
-      chalkyWhole: 0.35, blackTips: 0.15, burnt: 0.05, spot: 0.08, discoloration: 0.12,
-      red: 0.07, husk: 0.14, paddy: 0.07, chaff: 0.07, straw: 0.025, sticks: 0.025, brownRice: 0.07,
-      stones: 0.025, mud: 0.012, thread: 0.007, plastic: 0.007, metals: 0.002, glass: 0.002
-    },
-    { 
-      date: '2024-05',
-      headRice: 48.8, threeFourthHead: 27.5, halfBrokens: 10.5, quarterFineBrokens: 7.0, tips: 2.9,
-      chalkyBellyCore: 0.8, yellow: 0.4, black: 0.12, immatureGreen: 0.2, peckyGrains: 0.08, discolored: 0.2,
-      chalkyWhole: 0.3, blackTips: 0.12, burnt: 0.04, spot: 0.06, discoloration: 0.1,
-      red: 0.06, husk: 0.12, paddy: 0.06, chaff: 0.06, straw: 0.02, sticks: 0.02, brownRice: 0.06,
-      stones: 0.02, mud: 0.01, thread: 0.006, plastic: 0.006, metals: 0.002, glass: 0.002
-    },
-    { 
-      date: '2024-06',
-      headRice: 49.5, threeFourthHead: 28.0, halfBrokens: 10.2, quarterFineBrokens: 6.8, tips: 2.8,
-      chalkyBellyCore: 0.7, yellow: 0.3, black: 0.1, immatureGreen: 0.15, peckyGrains: 0.05, discolored: 0.15,
-      chalkyWhole: 0.25, blackTips: 0.1, burnt: 0.03, spot: 0.05, discoloration: 0.08,
-      red: 0.05, husk: 0.1, paddy: 0.05, chaff: 0.05, straw: 0.015, sticks: 0.015, brownRice: 0.05,
-      stones: 0.015, mud: 0.008, thread: 0.005, plastic: 0.005, metals: 0.001, glass: 0.001
-    }
+  // Machine options
+  const machineOptions = [
+    { value: 'polisher', label: 'Polisher' },
+    { value: 'whitener', label: 'Whitener' },
+    { value: 'destoner', label: 'Destoner' },
+    { value: 'sorter', label: 'Sorter' },
+    { value: 'husk-separator', label: 'Husk Separator' },
+    { value: 'sifter', label: 'Sifter' }
   ];
 
-  // Normalize all data points to ensure each sums to 100%
-  const data = rawData.map(normalizeDataPoint);
+  // Category options
+  const categoryOptions = [
+    { value: 'accepted', label: 'Accepted' },
+    { value: 'rejected', label: 'Rejected' },
+    { value: 'brokens', label: 'Brokens' },
+    { value: 'chalky', label: 'Chalky' },
+    { value: 'moisture', label: 'Moisture' },
+    { value: 'weight', label: 'Weight' },
+    { value: 'variety', label: 'Variety' }
+  ];
 
-  const handleParameterChange = (parameter: string, checked: boolean) => {
-    setSelectedParameters(prev => ({ ...prev, [parameter]: checked }));
+  // Sample data - this would come from your API based on filters
+  const generateSampleData = () => {
+    const months = ['2024-01', '2024-02', '2024-03', '2024-04', '2024-05', '2024-06'];
+    return months.map(month => ({
+      date: month,
+      accepted: Math.floor(Math.random() * 30) + 70, // 70-100%
+      rejected: Math.floor(Math.random() * 15) + 5,  // 5-20%
+      brokens: Math.floor(Math.random() * 10) + 5,   // 5-15%
+      chalky: Math.floor(Math.random() * 8) + 2,     // 2-10%
+      moisture: Math.floor(Math.random() * 5) + 10,  // 10-15%
+      weight: Math.floor(Math.random() * 100) + 400, // 400-500kg
+      variety: Math.floor(Math.random() * 3) + 1     // 1-4 varieties
+    }));
   };
 
-  const getLineColor = (parameter: string) => {
-    const colors: { [key: string]: string } = {
-      // Good Rice - Green shades
-      headRice: '#10B981', threeFourthHead: '#34D399', halfBrokens: '#6EE7B7', 
-      quarterFineBrokens: '#A7F3D0', tips: '#D1FAE5',
-      goodRiceTotal: '#059669',
-      
-      // Rejections - Red shades
-      chalkyBellyCore: '#EF4444', yellow: '#F87171', black: '#FCA5A5', 
-      immatureGreen: '#FECACA', peckyGrains: '#FEE2E2', discolored: '#DC2626',
-      chalkyWhole: '#B91C1C', blackTips: '#991B1B', burnt: '#7F1D1D',
-      spot: '#EF4444', discoloration: '#F87171',
-      rejectionsTotal: '#DC2626',
-      
-      // Foreign Matter - Orange/Yellow shades
-      red: '#F59E0B', husk: '#FBBF24', paddy: '#FCD34D', chaff: '#FDE68A',
-      straw: '#FEF3C7', sticks: '#FFFBEB', brownRice: '#D97706',
-      stones: '#92400E', mud: '#78350F', thread: '#451A03',
-      plastic: '#F59E0B', metals: '#D97706', glass: '#B45309',
-      foreignMatterTotal: '#D97706'
-    };
-    return colors[parameter] || '#6B7280';
+  const [chartData, setChartData] = useState(generateSampleData());
+
+  // Colors for pie chart
+  const pieColors = ['#10B981', '#EF4444', '#F59E0B', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316'];
+
+  // Update data when filters change
+  useEffect(() => {
+    // In a real app, you would fetch data based on filters here
+    setChartData(generateSampleData());
+  }, [filters]);
+
+  const handleCategoryToggle = (category: string) => {
+    setFilters(prev => ({
+      ...prev,
+      selectedCategories: prev.selectedCategories.includes(category)
+        ? prev.selectedCategories.filter(c => c !== category)
+        : [...prev.selectedCategories, category]
+    }));
   };
 
-  const getParameterLabel = (parameter: string) => {
-    const labels: { [key: string]: string } = {
-      headRice: 'Head Rice',
-      threeFourthHead: '≥ 3/4 (Head rice)',
-      halfBrokens: '≥ 1/2 (Brokens)',
-      quarterFineBrokens: '≤ 1/4 (Fine brokens)',
-      tips: 'Tips (less than 1/4)',
-      chalkyBellyCore: 'Chalky (Belly, core)',
-      yellow: 'Yellow',
-      black: 'Black',
-      immatureGreen: 'Immature (Green)',
-      peckyGrains: 'Pecky grains',
-      discolored: 'Discolored',
-      chalkyWhole: 'Chalky (Whole)',
-      blackTips: 'Black Tips',
-      burnt: 'Burnt',
-      spot: 'Spot',
-      discoloration: 'Discoloration',
-      red: 'Red',
-      husk: 'Husk',
-      paddy: 'Paddy',
-      chaff: 'Chaff',
-      straw: 'Straw',
-      sticks: 'Sticks',
-      brownRice: 'Brown rice',
-      stones: 'Stones',
-      mud: 'Mud',
-      thread: 'Thread',
-      plastic: 'Plastic',
-      metals: 'Metals',
-      glass: 'Glass',
-      goodRiceTotal: 'Good Rice Total',
-      rejectionsTotal: 'Rejections Total',
-      foreignMatterTotal: 'Foreign Matter Total'
-    };
-    return labels[parameter] || parameter;
+  const renderChart = () => {
+    const { chartType, selectedCategories } = filters;
+
+    if (chartType === 'pie') {
+      // For pie chart, show latest data point
+      const latestData = chartData[chartData.length - 1];
+      const pieData = selectedCategories.map((category, index) => ({
+        name: categoryOptions.find(opt => opt.value === category)?.label || category,
+        value: latestData[category as keyof typeof latestData] as number,
+        fill: pieColors[index % pieColors.length]
+      }));
+
+      return (
+        <PieChart>
+          <Pie
+            data={pieData}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            outerRadius={80}
+            fill="#8884d8"
+            dataKey="value"
+          >
+            {pieData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.fill} />
+            ))}
+          </Pie>
+          <Tooltip />
+        </PieChart>
+      );
+    }
+
+    if (chartType === 'line') {
+      return (
+        <LineChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="date" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          {selectedCategories.map((category, index) => (
+            <Line
+              key={category}
+              type="monotone"
+              dataKey={category}
+              stroke={pieColors[index % pieColors.length]}
+              strokeWidth={3}
+              dot={{ fill: pieColors[index % pieColors.length], strokeWidth: 2, r: 4 }}
+              name={categoryOptions.find(opt => opt.value === category)?.label || category}
+              animationDuration={1000}
+            />
+          ))}
+        </LineChart>
+      );
+    }
+
+    // Default: Bar chart
+    return (
+      <BarChart data={chartData}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="date" />
+        <YAxis />
+        <Tooltip />
+        <Legend />
+        {selectedCategories.map((category, index) => (
+          <Bar
+            key={category}
+            dataKey={category}
+            fill={pieColors[index % pieColors.length]}
+            name={categoryOptions.find(opt => opt.value === category)?.label || category}
+            animationDuration={1000}
+          />
+        ))}
+      </BarChart>
+    );
   };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <PageHeader 
         title="Analytics" 
-        subtitle="Visual representation of rice quality data"
+        subtitle="Visual representation of rice quality data with advanced filtering"
       />
       
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Controls */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Parameter Selection with Accordions */}
-            <Card className="animate-fade-in">
-              <CardHeader>
-                <CardTitle className="text-rice-primary">Select Parameters</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Accordion type="multiple" className="w-full">
-                  {/* Category Totals */}
-                  <AccordionItem value="category-totals">
-                    <AccordionTrigger className="text-blue-700 font-semibold">
-                      Category Totals
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-3">
-                        {['goodRiceTotal', 'rejectionsTotal', 'foreignMatterTotal'].map((key) => (
-                          <div key={key} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={key}
-                              checked={selectedParameters[key as keyof typeof selectedParameters]}
-                              onCheckedChange={(checked) => handleParameterChange(key, checked as boolean)}
-                            />
-                            <Label htmlFor={key} className="cursor-pointer font-medium text-sm">
-                              {getParameterLabel(key)}
-                            </Label>
-                            <div 
-                              className="w-3 h-3 rounded-full ml-2"
-                              style={{ backgroundColor: getLineColor(key) }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  {/* Good Rice */}
-                  <AccordionItem value="good-rice">
-                    <AccordionTrigger className="text-green-700 font-semibold">
-                      Good Rice Parameters
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-3">
-                        {['headRice', 'threeFourthHead', 'halfBrokens', 'quarterFineBrokens', 'tips'].map((key) => (
-                          <div key={key} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={key}
-                              checked={selectedParameters[key as keyof typeof selectedParameters]}
-                              onCheckedChange={(checked) => handleParameterChange(key, checked as boolean)}
-                            />
-                            <Label htmlFor={key} className="cursor-pointer font-medium text-sm">
-                              {getParameterLabel(key)}
-                            </Label>
-                            <div 
-                              className="w-3 h-3 rounded-full ml-2"
-                              style={{ backgroundColor: getLineColor(key) }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  {/* Rejections */}
-                  <AccordionItem value="rejections">
-                    <AccordionTrigger className="text-red-700 font-semibold">
-                      Rejection Parameters
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="font-medium text-red-600 mb-2">Harvest Rejections</h4>
-                          <div className="space-y-2 ml-4">
-                            {['chalkyBellyCore', 'yellow', 'black', 'immatureGreen', 'peckyGrains', 'discolored'].map((key) => (
-                              <div key={key} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={key}
-                                  checked={selectedParameters[key as keyof typeof selectedParameters]}
-                                  onCheckedChange={(checked) => handleParameterChange(key, checked as boolean)}
-                                />
-                                <Label htmlFor={key} className="cursor-pointer font-medium text-sm">
-                                  {getParameterLabel(key)}
-                                </Label>
-                                <div 
-                                  className="w-3 h-3 rounded-full ml-2"
-                                  style={{ backgroundColor: getLineColor(key) }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-medium text-red-600 mb-2">Process Rejections</h4>
-                          <div className="space-y-2 ml-4">
-                            {['chalkyWhole', 'blackTips', 'burnt', 'spot', 'discoloration'].map((key) => (
-                              <div key={key} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={key}
-                                  checked={selectedParameters[key as keyof typeof selectedParameters]}
-                                  onCheckedChange={(checked) => handleParameterChange(key, checked as boolean)}
-                                />
-                                <Label htmlFor={key} className="cursor-pointer font-medium text-sm">
-                                  {getParameterLabel(key)}
-                                </Label>
-                                <div 
-                                  className="w-3 h-3 rounded-full ml-2"
-                                  style={{ backgroundColor: getLineColor(key) }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  {/* Foreign Matter */}
-                  <AccordionItem value="foreign-matter">
-                    <AccordionTrigger className="text-orange-700 font-semibold">
-                      Foreign Matter Parameters
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="font-medium text-orange-600 mb-2">Organic Foreign Matter</h4>
-                          <div className="space-y-2 ml-4">
-                            {['red', 'husk', 'paddy', 'chaff', 'straw', 'sticks', 'brownRice'].map((key) => (
-                              <div key={key} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={key}
-                                  checked={selectedParameters[key as keyof typeof selectedParameters]}
-                                  onCheckedChange={(checked) => handleParameterChange(key, checked as boolean)}
-                                />
-                                <Label htmlFor={key} className="cursor-pointer font-medium text-sm">
-                                  {getParameterLabel(key)}
-                                </Label>
-                                <div 
-                                  className="w-3 h-3 rounded-full ml-2"
-                                  style={{ backgroundColor: getLineColor(key) }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-medium text-orange-600 mb-2">Inorganic Foreign Matter</h4>
-                          <div className="space-y-2 ml-4">
-                            {['stones', 'mud', 'thread', 'plastic', 'metals', 'glass'].map((key) => (
-                              <div key={key} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={key}
-                                  checked={selectedParameters[key as keyof typeof selectedParameters]}
-                                  onCheckedChange={(checked) => handleParameterChange(key, checked as boolean)}
-                                />
-                                <Label htmlFor={key} className="cursor-pointer font-medium text-sm">
-                                  {getParameterLabel(key)}
-                                </Label>
-                                <div 
-                                  className="w-3 h-3 rounded-full ml-2"
-                                  style={{ backgroundColor: getLineColor(key) }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </CardContent>
-            </Card>
-
-            {/* Chart Type Selection */}
-            <Card className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-              <CardHeader>
-                <CardTitle className="text-rice-primary">Visualization Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <Button
-                    variant={chartType === 'line' ? 'default' : 'outline'}
-                    onClick={() => setChartType('line')}
-                    className="w-full flex items-center space-x-2"
-                  >
-                    <LineChartIcon className="w-4 h-4" />
-                    <span>Line Chart</span>
-                  </Button>
-                  
-                  <Button
-                    variant={chartType === 'bar' ? 'default' : 'outline'}
-                    onClick={() => setChartType('bar')}
-                    className="w-full flex items-center space-x-2"
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    <span>Bar Chart</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Chart Display */}
-          <Card className="animate-scale-in">
+          
+          {/* Filters Section */}
+          <Card className="animate-fade-in">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-rice-primary">
-                <TrendingUp className="w-6 h-6" />
-                <span>Quality Metrics Over Time</span>
+                <Settings className="w-5 h-5" />
+                <span>Filters & Controls</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-96">
-                <ResponsiveContainer width="100%" height="100%">
-                  {chartType === 'line' ? (
-                    <LineChart data={data}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip />
-                      <Legend />
-                      {Object.entries(selectedParameters).map(([key, selected]) => 
-                        selected && (
-                          <Line
-                            key={key}
-                            type="monotone"
-                            dataKey={key}
-                            stroke={getLineColor(key)}
-                            strokeWidth={3}
-                            dot={{ fill: getLineColor(key), strokeWidth: 2, r: 4 }}
-                            name={getParameterLabel(key)}
-                            animationDuration={1000}
-                          />
-                        )
-                      )}
-                    </LineChart>
-                  ) : (
-                    <BarChart data={data}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip />
-                      <Legend />
-                      {Object.entries(selectedParameters).map(([key, selected]) => 
-                        selected && (
-                          <Bar
-                            key={key}
-                            dataKey={key}
-                            fill={getLineColor(key)}
-                            name={getParameterLabel(key)}
-                            animationDuration={1000}
-                          />
-                        )
-                      )}
-                    </BarChart>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                
+                {/* Date Range Picker */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Date From - To</Label>
+                  <div className="space-y-2">
+                    <Popover open={datePickerOpen.from} onOpenChange={(open) => setDatePickerOpen(prev => ({ ...prev, from: open }))}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !filters.dateRange.from && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {filters.dateRange.from ? format(filters.dateRange.from, "MMM dd, yyyy") : "From date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={filters.dateRange.from}
+                          onSelect={(date) => {
+                            setFilters(prev => ({
+                              ...prev,
+                              dateRange: { ...prev.dateRange, from: date }
+                            }));
+                            setDatePickerOpen(prev => ({ ...prev, from: false }));
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    
+                    <Popover open={datePickerOpen.to} onOpenChange={(open) => setDatePickerOpen(prev => ({ ...prev, to: open }))}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !filters.dateRange.to && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {filters.dateRange.to ? format(filters.dateRange.to, "MMM dd, yyyy") : "To date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={filters.dateRange.to}
+                          onSelect={(date) => {
+                            setFilters(prev => ({
+                              ...prev,
+                              dateRange: { ...prev.dateRange, to: date }
+                            }));
+                            setDatePickerOpen(prev => ({ ...prev, to: false }));
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                {/* View Mode Selector */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">View Mode</Label>
+                  <RadioGroup
+                    value={filters.viewMode}
+                    onValueChange={(value) => setFilters(prev => ({ 
+                      ...prev, 
+                      viewMode: value as 'machine-wise' | 'batch-wise',
+                      selectedMachine: value === 'batch-wise' ? undefined : prev.selectedMachine
+                    }))}
+                    className="flex flex-col space-y-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="machine-wise" id="machine-wise" />
+                      <Label htmlFor="machine-wise" className="text-sm cursor-pointer">Machine-wise</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="batch-wise" id="batch-wise" />
+                      <Label htmlFor="batch-wise" className="text-sm cursor-pointer">Batch-wise</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {/* Machine Selector (Conditional) */}
+                {filters.viewMode === 'machine-wise' && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Select Machine</Label>
+                    <Select
+                      value={filters.selectedMachine}
+                      onValueChange={(value) => setFilters(prev => ({ ...prev, selectedMachine: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose machine..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {machineOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Chart Type Selector */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Chart Type</Label>
+                  <ToggleGroup
+                    type="single"
+                    value={filters.chartType}
+                    onValueChange={(value) => value && setFilters(prev => ({ ...prev, chartType: value as any }))}
+                    className="grid grid-cols-3 w-full"
+                  >
+                    <ToggleGroupItem value="bar" aria-label="Bar Chart" className="flex flex-col items-center space-y-1 p-3">
+                      <BarChart3 className="w-4 h-4" />
+                      <span className="text-xs">Bar</span>
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="pie" aria-label="Pie Chart" className="flex flex-col items-center space-y-1 p-3">
+                      <PieChartIcon className="w-4 h-4" />
+                      <span className="text-xs">Pie</span>
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="line" aria-label="Line Chart" className="flex flex-col items-center space-y-1 p-3">
+                      <LineChartIcon className="w-4 h-4" />
+                      <span className="text-xs">Line</span>
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+
+                {/* Category Selector */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Select Data for Chart</Label>
+                  <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={categoryOpen}
+                        className="w-full justify-between"
+                      >
+                        {filters.selectedCategories.length > 0
+                          ? `${filters.selectedCategories.length} selected`
+                          : "Select categories..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search categories..." />
+                        <CommandList>
+                          <CommandEmpty>No categories found.</CommandEmpty>
+                          <CommandGroup>
+                            {categoryOptions.map((option) => (
+                              <CommandItem
+                                key={option.value}
+                                value={option.value}
+                                onSelect={() => handleCategoryToggle(option.value)}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    filters.selectedCategories.includes(option.value)
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {option.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {filters.selectedCategories.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {filters.selectedCategories.map((category) => (
+                        <span
+                          key={category}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary text-primary-foreground"
+                        >
+                          {categoryOptions.find(opt => opt.value === category)?.label}
+                          <button
+                            onClick={() => handleCategoryToggle(category)}
+                            className="ml-1 text-primary-foreground hover:text-primary-foreground/80"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
                   )}
-                </ResponsiveContainer>
+                </div>
+
               </div>
             </CardContent>
           </Card>
 
-          {/* Summary Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {Object.entries(selectedParameters).map(([key, selected]) => {
-              if (!selected) return null;
-              
-              const values = data.map(d => d[key as keyof typeof d] as number);
-              const avg = values.reduce((a, b) => a + b, 0) / values.length;
-              const max = Math.max(...values);
-              const min = Math.min(...values);
+          {/* Chart Display Area */}
+          <Card className="animate-scale-in">
+            <CardHeader>
+              <CardTitle className="text-rice-primary">
+                {filters.viewMode === 'machine-wise' 
+                  ? `${machineOptions.find(m => m.value === filters.selectedMachine)?.label || 'Machine'} Analysis`
+                  : 'Batch Analysis'
+                } - {filters.chartType.charAt(0).toUpperCase() + filters.chartType.slice(1)} Chart
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {filters.selectedCategories.length > 0 ? (
+                <div className="h-96">
+                  <ResponsiveContainer width="100%" height="100%">
+                    {renderChart()}
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-96 flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p>Please select at least one category to display the chart</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-              return (
-                <Card key={key} className="animate-fade-in">
-                  <CardContent className="p-6">
-                    <div className="text-center">
-                      <div 
-                        className="w-4 h-4 rounded-full mx-auto mb-2"
-                        style={{ backgroundColor: getLineColor(key) }}
-                      />
-                      <h3 className="font-semibold text-gray-800 text-sm">
-                        {getParameterLabel(key)}
-                      </h3>
-                      <div className="mt-4 space-y-2">
-                        <div>
-                          <span className="text-sm text-gray-600">Average</span>
-                          <p className="text-xl font-bold" style={{ color: getLineColor(key) }}>
-                            {avg.toFixed(1)}%
-                          </p>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Min: {min.toFixed(1)}%</span>
-                          <span>Max: {max.toFixed(1)}%</span>
+          {/* Summary Statistics */}
+          {filters.selectedCategories.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {filters.selectedCategories.map((category, index) => {
+                const values = chartData.map(d => d[category as keyof typeof d] as number);
+                const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                const max = Math.max(...values);
+                const min = Math.min(...values);
+                const categoryLabel = categoryOptions.find(opt => opt.value === category)?.label || category;
+
+                return (
+                  <Card key={category} className="animate-fade-in">
+                    <CardContent className="p-6">
+                      <div className="text-center">
+                        <div 
+                          className="w-4 h-4 rounded-full mx-auto mb-2"
+                          style={{ backgroundColor: pieColors[index % pieColors.length] }}
+                        />
+                        <h3 className="font-semibold text-gray-800 text-sm">
+                          {categoryLabel}
+                        </h3>
+                        <div className="mt-4 space-y-2">
+                          <div>
+                            <span className="text-sm text-gray-600">Average</span>
+                            <p className="text-xl font-bold" style={{ color: pieColors[index % pieColors.length] }}>
+                              {avg.toFixed(1)}{category === 'weight' ? 'kg' : category === 'variety' ? '' : '%'}
+                            </p>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Min: {min.toFixed(1)}{category === 'weight' ? 'kg' : category === 'variety' ? '' : '%'}</span>
+                            <span>Max: {max.toFixed(1)}{category === 'weight' ? 'kg' : category === 'variety' ? '' : '%'}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

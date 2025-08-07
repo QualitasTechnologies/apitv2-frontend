@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Camera, Save, Trash2, Play, Pause } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Camera, Save, Trash2, Play, Pause, BarChart3, Percent } from "lucide-react";
 
 const LiveAnalysis = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [autoSave, setAutoSave] = useState(true);
+  const [showPercentage, setShowPercentage] = useState(true);
   
   // Initial metrics structure based on JSON - these will be normalized to sum to 100%
   const baseMetrics = {
@@ -240,6 +241,76 @@ const LiveAnalysis = () => {
 
   const totals = calculateTotals(metrics);
 
+  // Generate sample counts for demonstration (simulating actual grain counts)
+  const generateCounts = (percentage: number) => Math.round(percentage * 10); // 10x multiplier for demo
+
+  // Create flat array of all metrics with their properties
+  const getAllMetrics = () => {
+    return [
+      // Good Rice
+      { category: 'Good Rice', name: 'Head Rice', value: metrics.goodRice.headRice, color: 'bg-green-500', textColor: 'text-green-700' },
+      { category: 'Good Rice', name: '≥ 3/4 (Head rice)', value: metrics.goodRice.threeFourthHead, color: 'bg-green-400', textColor: 'text-green-700' },
+      { category: 'Good Rice', name: '≥ 1/2 (Brokens)', value: metrics.goodRice.halfBrokens, color: 'bg-green-300', textColor: 'text-green-700' },
+      { category: 'Good Rice', name: '≤ 1/4 (Fine brokens)', value: metrics.goodRice.quarterFineBrokens, color: 'bg-green-200', textColor: 'text-green-700' },
+      { category: 'Good Rice', name: 'Tips (less than 1/4)', value: metrics.goodRice.tips, color: 'bg-green-100', textColor: 'text-green-700' },
+      
+      // Harvest Rejections
+      { category: 'Harvest Rejections', name: 'Chalky (Belly, core)', value: metrics.rejections.harvest.chalkyBellyCore, color: 'bg-red-500', textColor: 'text-red-700' },
+      { category: 'Harvest Rejections', name: 'Yellow', value: metrics.rejections.harvest.yellow, color: 'bg-red-400', textColor: 'text-red-700' },
+      { category: 'Harvest Rejections', name: 'Black', value: metrics.rejections.harvest.black, color: 'bg-red-300', textColor: 'text-red-700' },
+      { category: 'Harvest Rejections', name: 'Immature (Green)', value: metrics.rejections.harvest.immatureGreen, color: 'bg-red-200', textColor: 'text-red-700' },
+      { category: 'Harvest Rejections', name: 'Pecky grains', value: metrics.rejections.harvest.peckyGrains, color: 'bg-red-100', textColor: 'text-red-700' },
+      { category: 'Harvest Rejections', name: 'Discolored', value: metrics.rejections.harvest.discolored, color: 'bg-red-50', textColor: 'text-red-700' },
+      
+      // Process Rejections
+      { category: 'Process Rejections', name: 'Chalky (Whole)', value: metrics.rejections.process.chalkyWhole, color: 'bg-pink-500', textColor: 'text-pink-700' },
+      { category: 'Process Rejections', name: 'Black Tips', value: metrics.rejections.process.blackTips, color: 'bg-pink-400', textColor: 'text-pink-700' },
+      { category: 'Process Rejections', name: 'Burnt', value: metrics.rejections.process.burnt, color: 'bg-pink-300', textColor: 'text-pink-700' },
+      { category: 'Process Rejections', name: 'Spot', value: metrics.rejections.process.spot, color: 'bg-pink-200', textColor: 'text-pink-700' },
+      { category: 'Process Rejections', name: 'Discoloration', value: metrics.rejections.process.discoloration, color: 'bg-pink-100', textColor: 'text-pink-700' },
+      
+      // Organic Foreign Matter
+      { category: 'Organic Foreign Matter', name: 'Red', value: metrics.foreignMatter.organic.red, color: 'bg-orange-500', textColor: 'text-orange-700' },
+      { category: 'Organic Foreign Matter', name: 'Husk', value: metrics.foreignMatter.organic.husk, color: 'bg-orange-400', textColor: 'text-orange-700' },
+      { category: 'Organic Foreign Matter', name: 'Paddy', value: metrics.foreignMatter.organic.paddy, color: 'bg-orange-300', textColor: 'text-orange-700' },
+      { category: 'Organic Foreign Matter', name: 'Chaff', value: metrics.foreignMatter.organic.chaff, color: 'bg-orange-200', textColor: 'text-orange-700' },
+      { category: 'Organic Foreign Matter', name: 'Straw', value: metrics.foreignMatter.organic.straw, color: 'bg-orange-100', textColor: 'text-orange-700' },
+      { category: 'Organic Foreign Matter', name: 'Sticks', value: metrics.foreignMatter.organic.sticks, color: 'bg-orange-50', textColor: 'text-orange-700' },
+      { category: 'Organic Foreign Matter', name: 'Brown rice', value: metrics.foreignMatter.organic.brownRice, color: 'bg-amber-200', textColor: 'text-orange-700' },
+      
+      // Inorganic Foreign Matter
+      { category: 'Inorganic Foreign Matter', name: 'Stones', value: metrics.foreignMatter.inorganic.stones, color: 'bg-gray-500', textColor: 'text-gray-700' },
+      { category: 'Inorganic Foreign Matter', name: 'Mud', value: metrics.foreignMatter.inorganic.mud, color: 'bg-gray-400', textColor: 'text-gray-700' },
+      { category: 'Inorganic Foreign Matter', name: 'Thread', value: metrics.foreignMatter.inorganic.thread, color: 'bg-gray-300', textColor: 'text-gray-700' },
+      { category: 'Inorganic Foreign Matter', name: 'Plastic', value: metrics.foreignMatter.inorganic.plastic, color: 'bg-gray-200', textColor: 'text-gray-700' },
+      { category: 'Inorganic Foreign Matter', name: 'Metals', value: metrics.foreignMatter.inorganic.metals, color: 'bg-gray-100', textColor: 'text-gray-700' },
+      { category: 'Inorganic Foreign Matter', name: 'Glass', value: metrics.foreignMatter.inorganic.glass, color: 'bg-gray-50', textColor: 'text-gray-700' },
+    ];
+  };
+
+  const MetricBar = ({ metric }: { metric: any }) => {
+    const displayValue = showPercentage ? metric.value : generateCounts(metric.value);
+    const maxValue = showPercentage ? 50 : 500; // Max for visual scaling
+    const progressValue = (displayValue / maxValue) * 100;
+
+    return (
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
+        <div className="flex justify-between items-center mb-2">
+          <span className={`text-sm font-medium ${metric.textColor}`}>{metric.name}</span>
+          <span className={`text-sm font-bold ${metric.textColor}`}>
+            {showPercentage ? `${displayValue.toFixed(displayValue < 1 ? 2 : 1)}%` : displayValue}
+          </span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2.5">
+          <div 
+            className={`h-2.5 rounded-full ${metric.color} transition-all duration-500 ease-in-out ${isAnalyzing ? 'animate-pulse' : ''}`}
+            style={{ width: `${Math.min(progressValue, 100)}%` }}
+          ></div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <PageHeader 
@@ -249,33 +320,73 @@ const LiveAnalysis = () => {
       
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-7xl mx-auto space-y-6">
+          {/* Analysis Controls Header */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button
+                onClick={handleStartStop}
+                className={`${
+                  isAnalyzing 
+                    ? 'bg-red-500 hover:bg-red-600' 
+                    : 'bg-green-500 hover:bg-green-600'
+                } text-white px-6 py-3`}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Pause className="w-5 h-5 mr-2" />
+                    Stop Analysis
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5 mr-2" />
+                    Start Analysis
+                  </>
+                )}
+              </Button>
+              <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${isAnalyzing ? 'bg-green-100' : 'bg-gray-100'}`}>
+                <div className={`w-3 h-3 rounded-full ${isAnalyzing ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className="text-sm font-medium">{isAnalyzing ? 'Analyzing' : 'Stopped'}</span>
+              </div>
+            </div>
+
+            {/* Metric Toggle */}
+            <div className="flex items-center space-x-3 bg-gray-50 p-2 rounded-lg">
+              <BarChart3 className={`w-4 h-4 ${!showPercentage ? 'text-rice-primary' : 'text-gray-400'}`} />
+              <Switch 
+                checked={showPercentage}
+                onCheckedChange={setShowPercentage}
+              />
+              <Percent className={`w-4 h-4 ${showPercentage ? 'text-rice-primary' : 'text-gray-400'}`} />
+              <span className="text-sm font-medium text-gray-700">
+                {showPercentage ? 'Percentage' : 'Count'}
+              </span>
+            </div>
+          </div>
+
           {/* Main Analysis Area */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             {/* Camera Feed */}
-            <div className="lg:col-span-2">
-              <Card className="animate-fade-in">
+            <div className="xl:col-span-1">
+              <Card className="animate-fade-in h-fit">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center space-x-2 text-rice-primary">
-                      <Camera className="w-6 h-6" />
-                      <span>Live Camera Feed</span>
-                    </CardTitle>
-                    <div className={`w-3 h-3 rounded-full ${isAnalyzing ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  </div>
+                  <CardTitle className="flex items-center space-x-2 text-rice-primary">
+                    <Camera className="w-6 h-6" />
+                    <span>Live Camera Feed</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="relative">
                     {/* Mock Camera Feed */}
-                    <div className="aspect-video bg-gray-900 rounded-lg relative overflow-hidden">
+                    <div className="aspect-square bg-gray-900 rounded-lg relative overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900"></div>
                       
                       {/* Mock Rice Grains */}
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="grid grid-cols-8 gap-2 p-8">
-                          {Array.from({ length: 32 }).map((_, i) => (
+                        <div className="grid grid-cols-6 gap-2 p-6">
+                          {Array.from({ length: 24 }).map((_, i) => (
                             <div
                               key={i}
-                              className={`w-6 h-3 rounded-full ${
+                              className={`w-4 h-2 rounded-full ${
                                 i % 6 === 0 ? 'bg-red-400' : 'bg-amber-200'
                               } ${isAnalyzing ? 'animate-pulse' : ''}`}
                             />
@@ -286,7 +397,7 @@ const LiveAnalysis = () => {
                       {/* Analysis Status */}
                       {isAnalyzing && (
                         <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold animate-pulse">
-                          Analyzing Grains...
+                          Analyzing...
                         </div>
                       )}
 
@@ -294,272 +405,18 @@ const LiveAnalysis = () => {
                       {isAnalyzing && (
                         <div className="absolute bottom-4 left-4 right-4">
                           <div className="bg-black/70 text-white p-3 rounded-lg">
-                            <div className="text-sm">Processing... Frame {Math.floor(Math.random() * 1000)}</div>
-                            <div className="text-xs opacity-80">Resolution: 1920x1080 | FPS: 30</div>
+                            <div className="text-sm">Frame {Math.floor(Math.random() * 1000)}</div>
+                            <div className="text-xs opacity-80">1920x1080 | 30fps</div>
                           </div>
                         </div>
                       )}
                     </div>
-
-                    {/* Controls */}
-                    <div className="flex items-center justify-center space-x-4 mt-4">
-                      <Button
-                        onClick={handleStartStop}
-                        className={`${
-                          isAnalyzing 
-                            ? 'bg-red-500 hover:bg-red-600' 
-                            : 'bg-green-500 hover:bg-green-600'
-                        } text-white px-6 py-3`}
-                      >
-                        {isAnalyzing ? (
-                          <>
-                            <Pause className="w-5 h-5 mr-2" />
-                            Stop Analysis
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-5 h-5 mr-2" />
-                            Start Analysis
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Results Panel */}
-            <div className="space-y-6">
-              {/* Summary Totals */}
-              <Card className="animate-fade-in">
-                <CardHeader>
-                  <CardTitle className="text-rice-primary">Quality Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                      <span className="font-medium text-green-800">Good Rice</span>
-                      <span className="font-bold text-xl text-green-600">{totals.goodRice.toFixed(1)}%</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                      <span className="font-medium text-red-800">Rejections</span>
-                      <span className="font-bold text-xl text-red-600">{totals.rejections.toFixed(1)}%</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                      <span className="font-medium text-orange-800">Foreign Matter</span>
-                      <span className="font-bold text-xl text-orange-600">{totals.foreignMatter.toFixed(1)}%</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border-2 border-blue-200">
-                      <span className="font-bold text-blue-800">Total</span>
-                      <span className="font-bold text-xl text-blue-600">{totals.total.toFixed(1)}%</span>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Detailed Metrics with Accordions */}
-              <Card className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-                <CardHeader>
-                  <CardTitle className="text-rice-primary">Detailed Metrics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Accordion type="single" collapsible className="w-full">
-                    {/* Good Rice */}
-                    <AccordionItem value="good-rice">
-                      <AccordionTrigger className="text-green-700 font-semibold">
-                        Good Rice ({totals.goodRice.toFixed(1)}%)
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Head Rice</span>
-                            <span className="font-medium">{metrics.goodRice.headRice.toFixed(1)}%</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>≥ 3/4 (Head rice)</span>
-                            <span className="font-medium">{metrics.goodRice.threeFourthHead.toFixed(1)}%</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>≥ 1/2 (Brokens)</span>
-                            <span className="font-medium">{metrics.goodRice.halfBrokens.toFixed(1)}%</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>≤ 1/4 (Fine brokens)</span>
-                            <span className="font-medium">{metrics.goodRice.quarterFineBrokens.toFixed(1)}%</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Tips (less than 1/4)</span>
-                            <span className="font-medium">{metrics.goodRice.tips.toFixed(1)}%</span>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Rejections */}
-                    <AccordionItem value="rejections">
-                      <AccordionTrigger className="text-red-700 font-semibold">
-                        Rejections ({totals.rejections.toFixed(1)}%)
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <Accordion type="single" collapsible className="w-full">
-                          <AccordionItem value="harvest-rejections">
-                            <AccordionTrigger className="text-red-600 text-sm">
-                              Harvest Rejections
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              <div className="space-y-2 ml-4">
-                                <div className="flex justify-between text-sm">
-                                  <span>Chalky (Belly, core)</span>
-                                  <span className="font-medium">{metrics.rejections.harvest.chalkyBellyCore.toFixed(2)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Yellow</span>
-                                  <span className="font-medium">{metrics.rejections.harvest.yellow.toFixed(2)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Black</span>
-                                  <span className="font-medium">{metrics.rejections.harvest.black.toFixed(2)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Immature (Green)</span>
-                                  <span className="font-medium">{metrics.rejections.harvest.immatureGreen.toFixed(2)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Pecky grains</span>
-                                  <span className="font-medium">{metrics.rejections.harvest.peckyGrains.toFixed(2)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Discolored</span>
-                                  <span className="font-medium">{metrics.rejections.harvest.discolored.toFixed(2)}%</span>
-                                </div>
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-
-                          <AccordionItem value="process-rejections">
-                            <AccordionTrigger className="text-red-600 text-sm">
-                              Process Rejections
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              <div className="space-y-2 ml-4">
-                                <div className="flex justify-between text-sm">
-                                  <span>Chalky (Whole)</span>
-                                  <span className="font-medium">{metrics.rejections.process.chalkyWhole.toFixed(2)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Black Tips</span>
-                                  <span className="font-medium">{metrics.rejections.process.blackTips.toFixed(2)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Burnt</span>
-                                  <span className="font-medium">{metrics.rejections.process.burnt.toFixed(2)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Spot</span>
-                                  <span className="font-medium">{metrics.rejections.process.spot.toFixed(2)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Discoloration</span>
-                                  <span className="font-medium">{metrics.rejections.process.discoloration.toFixed(2)}%</span>
-                                </div>
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        </Accordion>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Foreign Matter */}
-                    <AccordionItem value="foreign-matter">
-                      <AccordionTrigger className="text-orange-700 font-semibold">
-                        Foreign Matter ({totals.foreignMatter.toFixed(1)}%)
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <Accordion type="single" collapsible className="w-full">
-                          <AccordionItem value="organic-foreign">
-                            <AccordionTrigger className="text-orange-600 text-sm">
-                              Organic Foreign Matter
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              <div className="space-y-2 ml-4">
-                                <div className="flex justify-between text-sm">
-                                  <span>Red</span>
-                                  <span className="font-medium">{metrics.foreignMatter.organic.red.toFixed(3)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Husk</span>
-                                  <span className="font-medium">{metrics.foreignMatter.organic.husk.toFixed(3)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Paddy</span>
-                                  <span className="font-medium">{metrics.foreignMatter.organic.paddy.toFixed(3)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Chaff</span>
-                                  <span className="font-medium">{metrics.foreignMatter.organic.chaff.toFixed(3)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Straw</span>
-                                  <span className="font-medium">{metrics.foreignMatter.organic.straw.toFixed(3)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Sticks</span>
-                                  <span className="font-medium">{metrics.foreignMatter.organic.sticks.toFixed(3)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Brown rice</span>
-                                  <span className="font-medium">{metrics.foreignMatter.organic.brownRice.toFixed(3)}%</span>
-                                </div>
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-
-                          <AccordionItem value="inorganic-foreign">
-                            <AccordionTrigger className="text-orange-600 text-sm">
-                              Inorganic Foreign Matter
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              <div className="space-y-2 ml-4">
-                                <div className="flex justify-between text-sm">
-                                  <span>Stones</span>
-                                  <span className="font-medium">{metrics.foreignMatter.inorganic.stones.toFixed(3)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Mud</span>
-                                  <span className="font-medium">{metrics.foreignMatter.inorganic.mud.toFixed(3)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Thread</span>
-                                  <span className="font-medium">{metrics.foreignMatter.inorganic.thread.toFixed(3)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Plastic</span>
-                                  <span className="font-medium">{metrics.foreignMatter.inorganic.plastic.toFixed(3)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Metals</span>
-                                  <span className="font-medium">{metrics.foreignMatter.inorganic.metals.toFixed(3)}%</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Glass</span>
-                                  <span className="font-medium">{metrics.foreignMatter.inorganic.glass.toFixed(3)}%</span>
-                                </div>
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        </Accordion>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                </CardContent>
-              </Card>
-
-              {/* Controls */}
-              <Card className="animate-fade-in" style={{ animationDelay: "200ms" }}>
+              {/* Controls Card */}
+              <Card className="animate-fade-in mt-6" style={{ animationDelay: "200ms" }}>
                 <CardHeader>
                   <CardTitle className="text-rice-primary">Controls</CardTitle>
                 </CardHeader>
@@ -591,6 +448,86 @@ const LiveAnalysis = () => {
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete Sample
                       </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Detailed Metrics with Individual Bars */}
+            <div className="xl:col-span-2">
+              <Card className="animate-fade-in" style={{ animationDelay: "100ms" }}>
+                <CardHeader>
+                  <CardTitle className="text-rice-primary">Detailed Metrics - Individual Components</CardTitle>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Real-time analysis of individual rice grain components with {showPercentage ? 'percentage' : 'count'} values
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {/* Good Rice Section */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-green-700 mb-3 flex items-center">
+                        <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                        Good Rice ({totals.goodRice.toFixed(1)}%)
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {getAllMetrics().filter(m => m.category === 'Good Rice').map((metric, idx) => (
+                          <MetricBar key={`good-${idx}`} metric={metric} />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Harvest Rejections Section */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-red-700 mb-3 flex items-center">
+                        <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                        Harvest Rejections
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {getAllMetrics().filter(m => m.category === 'Harvest Rejections').map((metric, idx) => (
+                          <MetricBar key={`harvest-${idx}`} metric={metric} />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Process Rejections Section */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-pink-700 mb-3 flex items-center">
+                        <div className="w-3 h-3 bg-pink-500 rounded-full mr-2"></div>
+                        Process Rejections
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {getAllMetrics().filter(m => m.category === 'Process Rejections').map((metric, idx) => (
+                          <MetricBar key={`process-${idx}`} metric={metric} />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Organic Foreign Matter Section */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-orange-700 mb-3 flex items-center">
+                        <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                        Organic Foreign Matter
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {getAllMetrics().filter(m => m.category === 'Organic Foreign Matter').map((metric, idx) => (
+                          <MetricBar key={`organic-${idx}`} metric={metric} />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Inorganic Foreign Matter Section */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-700 mb-3 flex items-center">
+                        <div className="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
+                        Inorganic Foreign Matter
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {getAllMetrics().filter(m => m.category === 'Inorganic Foreign Matter').map((metric, idx) => (
+                          <MetricBar key={`inorganic-${idx}`} metric={metric} />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </CardContent>

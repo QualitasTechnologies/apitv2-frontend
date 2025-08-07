@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Link } from "react-router-dom";
-import { Wheat, ArrowRight, Plus, X } from "lucide-react";
+import { Wheat, ArrowRight, Plus, X, Save } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface CustomProperty {
@@ -27,36 +27,47 @@ const TellUsAboutGrain = () => {
   const [testing, setTesting] = useState("");
   const [sampling, setSampling] = useState("");
   const [batchNumber, setBatchNumber] = useState("");
-  
+  const [machine, setMachine] = useState("");
+
   // Dialog states for "Others" option
   const [isVarietyDialogOpen, setIsVarietyDialogOpen] = useState(false);
   const [isProcessDialogOpen, setIsProcessDialogOpen] = useState(false);
   const [customVariety, setCustomVariety] = useState("");
   const [customProcess, setCustomProcess] = useState("");
 
-  // KnowYourGrains state
-  const [geoProperties, setGeoProperties] = useState({
-    length: "",
-    breadth: "",
-    weight: "",
-    aspectRatio: "",
-    hardness: ""
-  });
+  // Default values for properties
+  const defaultGeoProperties = {
+    length: "5.5",
+    breadth: "2.3",
+    weight: "22.5",
+    aspectRatio: "2.4",
+    hardness: "45"
+  };
 
-  const [chemicalProperties, setChemicalProperties] = useState({
-    protein: "",
-    carbohydrate: "",
-    vitamin: "",
-    mineral: "",
-    lipids: ""
-  });
+  const defaultChemicalProperties = {
+    protein: "7.2",
+    carbohydrate: "78.9",
+    vitamin: "0.4",
+    mineral: "1.3",
+    lipids: "2.8"
+  };
 
-  const [gmadProperties, setGmadProperties] = useState({
-    gelatinization: "",
-    moisture: "",
-    age: "",
-    density: ""
-  });
+  const defaultGmadProperties = {
+    gelatinization: "65",
+    moisture: "14.5",
+    age: "6",
+    density: "1.4"
+  };
+
+  // KnowYourGrains state - initialized with default values
+  const [geoProperties, setGeoProperties] = useState(defaultGeoProperties);
+  const [chemicalProperties, setChemicalProperties] = useState(defaultChemicalProperties);
+  const [gmadProperties, setGmadProperties] = useState(defaultGmadProperties);
+
+  // Track if properties have been modified
+  const [isGeoModified, setIsGeoModified] = useState(false);
+  const [isChemicalModified, setIsChemicalModified] = useState(false);
+  const [isGmadModified, setIsGmadModified] = useState(false);
 
   const [customProperties, setCustomProperties] = useState<CustomProperty[]>([]);
   const [isCustomPropertyDialogOpen, setIsCustomPropertyDialogOpen] = useState(false);
@@ -66,7 +77,22 @@ const TellUsAboutGrain = () => {
     unit: ""
   });
 
-  const isFormComplete = variety && process && testing && sampling && batchNumber;
+  const isFormComplete = variety && process && testing && sampling && batchNumber && (testing !== "batch" || machine);
+
+  // Machine options for batch testing
+  const machineOptions = [
+    "Clean I (Precleaner)",
+    "Stone Sort I (Destoner)",
+    "Shell I (Husker)",
+    "Paddy Sort I (Tray seperator)",
+    "White I (Whitener)",
+    "Bright I (Silky polisher)",
+    "Thickthin Sort I (Thickness grader)",
+    "Sift I (Sifter)",
+    "Length Sort I (Length grader)",
+    "Blend & Pack I (Blend and Pack)",
+    "Intel Vision (Sortex/color sorter)"
+  ];
 
   // TellUsAboutGrain handlers
   const handleVarietyChange = (value: string) => {
@@ -82,6 +108,14 @@ const TellUsAboutGrain = () => {
       setIsProcessDialogOpen(true);
     } else {
       setProcess(value);
+    }
+  };
+
+  const handleTestingChange = (value: string) => {
+    setTesting(value);
+    // Reset machine selection when changing testing type
+    if (value !== "batch") {
+      setMachine("");
     }
   };
 
@@ -104,14 +138,33 @@ const TellUsAboutGrain = () => {
   // KnowYourGrains handlers
   const updateGeoProperty = (property: string, value: string) => {
     setGeoProperties(prev => ({ ...prev, [property]: value }));
+    setIsGeoModified(true);
   };
 
   const updateChemicalProperty = (property: string, value: string) => {
     setChemicalProperties(prev => ({ ...prev, [property]: value }));
+    setIsChemicalModified(true);
   };
 
   const updateGmadProperty = (property: string, value: string) => {
     setGmadProperties(prev => ({ ...prev, [property]: value }));
+    setIsGmadModified(true);
+  };
+
+  // Save handlers
+  const saveGeoProperties = () => {
+    setIsGeoModified(false);
+    // Here you could also save to localStorage or send to API
+  };
+
+  const saveChemicalProperties = () => {
+    setIsChemicalModified(false);
+    // Here you could also save to localStorage or send to API
+  };
+
+  const saveGmadProperties = () => {
+    setIsGmadModified(false);
+    // Here you could also save to localStorage or send to API
   };
 
   const handleAddProperty = () => {
@@ -242,7 +295,7 @@ const TellUsAboutGrain = () => {
                 {/* Testing Type */}
                 <div className="space-y-4">
                   <Label className="text-lg font-semibold">Testing Type</Label>
-                  <Select value={testing} onValueChange={setTesting}>
+                  <Select value={testing} onValueChange={handleTestingChange}>
                     <SelectTrigger className="h-12 border-2 hover:border-rice-primary transition-colors">
                       <SelectValue placeholder="Select testing type" />
                     </SelectTrigger>
@@ -252,6 +305,25 @@ const TellUsAboutGrain = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Machine - Only show when testing type is "batch" */}
+                {testing === "batch" && (
+                  <div className="space-y-4">
+                    <Label className="text-lg font-semibold">Machine</Label>
+                    <Select value={machine} onValueChange={setMachine}>
+                      <SelectTrigger className="h-12 border-2 hover:border-rice-primary transition-colors">
+                        <SelectValue placeholder="Select machine" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {machineOptions.map((machineOption) => (
+                          <SelectItem key={machineOption} value={machineOption}>
+                            {machineOption}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {/* Sampling Technique */}
                 <div className="space-y-4">
@@ -301,6 +373,12 @@ const TellUsAboutGrain = () => {
                     <span className="font-semibold text-gray-600">Testing:</span>
                     <p className="font-medium capitalize">{testing}</p>
                   </div>
+                  {testing === "batch" && machine && (
+                    <div>
+                      <span className="font-semibold text-gray-600">Machine:</span>
+                      <p className="font-medium">{machine}</p>
+                    </div>
+                  )}
                   <div>
                     <span className="font-semibold text-gray-600">Sampling:</span>
                     <p className="font-medium capitalize">{sampling}</p>
@@ -319,7 +397,19 @@ const TellUsAboutGrain = () => {
             {/* Geo Properties */}
             <Card className="animate-fade-in" style={{ animationDelay: "400ms" }}>
               <CardHeader>
-                <CardTitle className="text-rice-primary">{t('knowGrains.geoProperties')}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-rice-primary">Morphological Properties</CardTitle>
+                  {isGeoModified && (
+                    <Button 
+                      onClick={saveGeoProperties}
+                      size="sm"
+                      className="flex items-center space-x-1"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Save</span>
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
@@ -389,7 +479,19 @@ const TellUsAboutGrain = () => {
             {/* Chemical Properties */}
             <Card className="animate-fade-in" style={{ animationDelay: "500ms" }}>
               <CardHeader>
-                <CardTitle className="text-rice-primary">{t('knowGrains.chemicalProperties')}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-rice-primary">Nutritional Properties</CardTitle>
+                  {isChemicalModified && (
+                    <Button 
+                      onClick={saveChemicalProperties}
+                      size="sm"
+                      className="flex items-center space-x-1"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Save</span>
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
@@ -459,7 +561,19 @@ const TellUsAboutGrain = () => {
             {/* Gmad Properties */}
             <Card className="animate-fade-in" style={{ animationDelay: "600ms" }}>
               <CardHeader>
-                <CardTitle className="text-rice-primary">{t('knowGrains.gmadProperties')}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-rice-primary">GMAD Properties</CardTitle>
+                  {isGmadModified && (
+                    <Button 
+                      onClick={saveGmadProperties}
+                      size="sm"
+                      className="flex items-center space-x-1"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Save</span>
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">

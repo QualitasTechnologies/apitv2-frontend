@@ -25,47 +25,46 @@ const LoadingPage: React.FC<LoadingPageProps> = ({ onLoadingComplete }) => {
   }, [onLoadingComplete]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex flex-col items-center justify-center">
-      {/* Company Logo */}
-      <div className="mb-8 animate-pulse">
-        <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-2xl p-4">
-          <img 
-            src="/company-logo.png" 
-            alt="APIT Company Logo" 
-            className="w-full h-full object-contain"
-          />
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex flex-col items-center justify-center text-center">
+      {/* Main Title */}
+      <h1 className="text-8xl font-bold text-white mb-4 tracking-wide">
+        Rice Doctor
+      </h1>
+
+      {/* Subtitle */}
+      <p className="text-2xl text-blue-100 mb-12 font-light tracking-wide">
+        Advanced Rice Quality Analysis System
+      </p>
+
+      {/* APIT Logo */}
+      <div className="mb-16">
+        <img 
+          src="/company-logo.png" 
+          alt="APIT Company Logo" 
+          className="h-24 w-auto mx-auto"
+        />
       </div>
 
-      {/* Company Name */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-white mb-2">APIT</h1>
-        <p className="text-xl text-rice-secondary font-semibold">Rice Doctor</p>
-        <p className="text-gray-200 mt-2">Advanced Rice Quality Analysis System</p>
+      {/* Ready Text */}
+      <div className="mb-6">
+        <p className="text-white text-2xl font-bold tracking-widest">
+          READY!
+        </p>
       </div>
 
-      {/* Loading Progress */}
-      <div className="w-80 mb-4">
-        <div className="bg-white/30 rounded-full h-3 overflow-hidden shadow-inner">
+      {/* Loading Progress Bar */}
+      <div className="w-96 mb-8">
+        <div className="bg-blue-400/30 rounded-full h-2 overflow-hidden">
           <div 
-            className="bg-rice-secondary h-full transition-all duration-100 ease-out rounded-full shadow-sm"
+            className="bg-yellow-400 h-full transition-all duration-100 ease-out rounded-full"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
-      {/* Loading Text */}
-      <p className="text-gray-100 text-sm font-medium">
-        {progress < 30 && "Initializing system..."}
-        {progress >= 30 && progress < 60 && "Loading components..."}
-        {progress >= 60 && progress < 90 && "Preparing interface..."}
-        {progress >= 90 && "Ready!"}
-      </p>
-
-      {/* Version Info */}
-      <div className="absolute bottom-8 text-center">
-        <p className="text-gray-300 text-xs">Version 2.0.1</p>
-        <p className="text-gray-300 text-xs">© 2024 APIT Technologies</p>
+      {/* Loading Spinner */}
+      <div className="relative">
+        <div className="w-16 h-16 border-4 border-blue-300/30 border-t-blue-400 rounded-full animate-spin"></div>
       </div>
     </div>
   );
