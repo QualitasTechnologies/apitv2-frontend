@@ -8,58 +8,158 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, FileText, Download, FileSpreadsheet } from "lucide-react";
+import { CalendarIcon, Download, Factory, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+interface ProcessData {
+  id: string;
+  name: string;
+  date: string;
+  goodRice: number;
+  rejection: number;
+  foreignMatter: number;
+  totalQuantity: number;
+}
 
 const DataReports = () => {
   const [fromDate, setFromDate] = useState<Date>();
   const [toDate, setToDate] = useState<Date>();
-  const [reportType, setReportType] = useState("consolidated");
+  const [reportType, setReportType] = useState("machine");
   
-  const handleExportPDF = () => {
-    console.log("Exporting to PDF with options:", {
-      fromDate,
-      toDate,
-      reportType
-    });
-    // Here would be the actual PDF export logic
-  };
-
-  const handleExportExcel = () => {
-    console.log("Exporting to Excel with options:", {
-      fromDate,
-      toDate,
-      reportType
-    });
-    // Here would be the actual Excel export logic
-  };
-
-  const previewData = [
-    { parameter: "Head Rice (%)", value: "93.5", target: "≥90", status: "Pass" },
-    { parameter: "Broken Rice (%)", value: "4.2", target: "≤5", status: "Pass" },
-    { parameter: "Defective Grains (%)", value: "1.8", target: "≤3", status: "Pass" },
-    { parameter: "Chalky Grains (%)", value: "0.5", target: "≤2", status: "Pass" },
-    { parameter: "Foreign Matter (%)", value: "0.1", target: "≤0.5", status: "Pass" },
+  // Sample data for machine processes
+  const machineProcesses: ProcessData[] = [
+    {
+      id: "M001",
+      name: "Stone Sort I",
+      date: "2024-11-15",
+      goodRice: 93.5,
+      rejection: 4.2,
+      foreignMatter: 0.3,
+      totalQuantity: 500
+    },
+    {
+      id: "M002", 
+      name: "Paddy Sort I",
+      date: "2024-12-20",
+      goodRice: 92.8,
+      rejection: 5.1,
+      foreignMatter: 0.5,
+      totalQuantity: 750
+    },
+    {
+      id: "M003",
+      name: "Shell Sort I", 
+      date: "2025-01-10",
+      goodRice: 94.2,
+      rejection: 3.8,
+      foreignMatter: 0.2,
+      totalQuantity: 600
+    },
+    {
+      id: "M004",
+      name: "Shell Sort II",
+      date: "2025-02-05", 
+      goodRice: 91.9,
+      rejection: 6.2,
+      foreignMatter: 0.7,
+      totalQuantity: 450
+    }
   ];
+
+  // Sample data for batch processes
+  const batchProcesses: ProcessData[] = [
+    {
+      id: "B001",
+      name: "Batch #2024-001",
+      date: "2024-10-25",
+      goodRice: 95.1,
+      rejection: 3.2,
+      foreignMatter: 0.1,
+      totalQuantity: 1000
+    },
+    {
+      id: "B002",
+      name: "Batch #2024-002", 
+      date: "2024-12-08",
+      goodRice: 93.7,
+      rejection: 4.8,
+      foreignMatter: 0.4,
+      totalQuantity: 850
+    },
+    {
+      id: "B003",
+      name: "Batch #2025-001",
+      date: "2025-01-22",
+      goodRice: 96.3,
+      rejection: 2.9,
+      foreignMatter: 0.2,
+      totalQuantity: 1200
+    },
+    {
+      id: "B004",
+      name: "Batch #2025-002",
+      date: "2025-03-12",
+      goodRice: 92.4,
+      rejection: 5.5,
+      foreignMatter: 0.6,
+      totalQuantity: 900
+    }
+  ];
+
+  // Filter processes based on selected date range
+  const getFilteredProcesses = () => {
+    const processes = reportType === "machine" ? machineProcesses : batchProcesses;
+    
+    if (!fromDate || !toDate) {
+      return processes;
+    }
+    
+    return processes.filter(process => {
+      const processDate = new Date(process.date);
+      return processDate >= fromDate && processDate <= toDate;
+    });
+  };
+
+  const currentProcesses = getFilteredProcesses();
+
+  const handleDownloadReport = (processId: string, processName: string) => {
+    console.log(`Downloading report for ${processName} (ID: ${processId})`);
+    
+    // Create a dummy PDF download
+    const pdfFileName = reportType === "machine" ? "machine_analysis_report.pdf" : "batch_analysis_report.pdf";
+    const link = document.createElement('a');
+    link.href = `/${pdfFileName}`;
+    link.download = `${processName.replace(/[^a-zA-Z0-9]/g, '_')}_report.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const getQualityStatus = (goodRice: number) => {
+    if (goodRice >= 95) return { status: "Excellent", color: "text-green-600" };
+    if (goodRice >= 90) return { status: "Good", color: "text-blue-600" };
+    if (goodRice >= 85) return { status: "Average", color: "text-yellow-600" };
+    return { status: "Poor", color: "text-red-600" };
+  };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <PageHeader 
         title="Data Reports" 
-        subtitle="Generate and export detailed quality reports"
+        subtitle="Generate and download process-specific quality reports"
       />
       
       <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-6xl mx-auto space-y-8">
-          {/* Report Configuration */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Date Range Selection */}
-            <Card className="animate-fade-in">
-              <CardHeader>
-                <CardTitle className="text-rice-primary">Date Range Selection</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
+        <div className="max-w-6xl mx-auto space-y-6">
+          {/* Filters Section */}
+          <Card className="animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-rice-primary">Report Filters</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Date Range */}
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="font-medium">From Date</Label>
                     <Popover>
@@ -79,7 +179,13 @@ const DataReports = () => {
                         <Calendar
                           mode="single"
                           selected={fromDate}
-                          onSelect={setFromDate}
+                          onSelect={(date) => {
+                            setFromDate(date);
+                            // If to date is before the new from date, reset it
+                            if (toDate && date && toDate < date) {
+                              setToDate(undefined);
+                            }
+                          }}
                           initialFocus
                           className={cn("p-3 pointer-events-auto")}
                         />
@@ -108,160 +214,112 @@ const DataReports = () => {
                           selected={toDate}
                           onSelect={setToDate}
                           initialFocus
+                          disabled={(date) => fromDate ? date < fromDate : false}
                           className={cn("p-3 pointer-events-auto")}
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Report Type Selection */}
-            <Card className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-              <CardHeader>
-                <CardTitle className="text-rice-primary">Report Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RadioGroup value={reportType} onValueChange={setReportType}>
-                  <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
-                    <RadioGroupItem value="consolidated" id="consolidated" />
-                    <Label htmlFor="consolidated" className="cursor-pointer font-medium flex-1">
-                      <div>
-                        <div className="font-semibold">Consolidated Report</div>
-                        <div className="text-sm text-gray-600">Summary of all parameters with averages</div>
-                      </div>
-                    </Label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
-                    <RadioGroupItem value="detailed" id="detailed" />
-                    <Label htmlFor="detailed" className="cursor-pointer font-medium flex-1">
-                      <div>
-                        <div className="font-semibold">Detailed Report</div>
-                        <div className="text-sm text-gray-600">Individual sample data with complete analysis</div>
-                      </div>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Report Preview */}
-          <Card className="animate-scale-in">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-rice-primary">
-                <FileText className="w-6 h-6" />
-                <span>Report Preview</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Report Header */}
-                <div className="border-b pb-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h2 className="text-xl font-bold text-rice-primary">Rice Quality Analysis Report</h2>
-                      <p className="text-gray-600">Rice Mill Private Limited</p>
-                      <p className="text-sm text-gray-500">
-                        Period: {fromDate ? format(fromDate, "PPP") : "Start Date"} to {toDate ? format(toDate, "PPP") : "End Date"}
-                      </p>
+                {/* Report Type */}
+                <div className="lg:col-span-2">
+                  <Label className="font-medium mb-4 block">Report Type</Label>
+                  <RadioGroup value={reportType} onValueChange={setReportType} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <RadioGroupItem value="machine" id="machine" />
+                      <Label htmlFor="machine" className="cursor-pointer flex items-center space-x-3 flex-1">
+                        <Factory className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <div className="font-semibold">Machine Process</div>
+                          <div className="text-sm text-gray-600">Individual machine line reports</div>
+                        </div>
+                      </Label>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">Report Type: {reportType}</p>
-                      <p className="text-sm text-gray-500">Generated: {format(new Date(), "PPP")}</p>
+                    
+                    <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <RadioGroupItem value="batch" id="batch" />
+                      <Label htmlFor="batch" className="cursor-pointer flex items-center space-x-3 flex-1">
+                        <Package className="w-5 h-5 text-green-600" />
+                        <div>
+                          <div className="font-semibold">Batch Process</div>
+                          <div className="text-sm text-gray-600">Batch-wise analysis reports</div>
+                        </div>
+                      </Label>
                     </div>
-                  </div>
-                </div>
-
-                {/* Sample Data Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-300">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Parameter</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Value</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Target</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {previewData.map((row, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="border border-gray-300 px-4 py-2 font-medium">{row.parameter}</td>
-                          <td className="border border-gray-300 px-4 py-2">{row.value}</td>
-                          <td className="border border-gray-300 px-4 py-2">{row.target}</td>
-                          <td className="border border-gray-300 px-4 py-2">
-                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
-                              row.status === 'Pass' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {row.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Summary */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold mb-2">Summary</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Total Samples:</span>
-                      <span className="font-semibold ml-2">156</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Average Quality Score:</span>
-                      <span className="font-semibold ml-2 text-green-600">94.8%</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Compliance Rate:</span>
-                      <span className="font-semibold ml-2 text-green-600">100%</span>
-                    </div>
-                  </div>
+                  </RadioGroup>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Export Options */}
-          <Card className="animate-fade-in" style={{ animationDelay: "200ms" }}>
+          {/* Process List */}
+          <Card className="animate-fade-in" style={{ animationDelay: "100ms" }}>
             <CardHeader>
-              <CardTitle className="text-rice-primary">Export Options</CardTitle>
+              <CardTitle className="flex items-center space-x-2 text-rice-primary">
+                {reportType === "machine" ? <Factory className="w-6 h-6" /> : <Package className="w-6 h-6" />}
+                <span>{reportType === "machine" ? "Machine Processes" : "Batch Processes"}</span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button
-                  onClick={handleExportPDF}
-                  disabled={!fromDate || !toDate}
-                  className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 text-lg"
-                  size="lg"
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  Export to PDF
-                </Button>
-                
-                <Button
-                  onClick={handleExportExcel}
-                  disabled={!fromDate || !toDate}
-                  className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 text-lg"
-                  size="lg"
-                >
-                  <FileSpreadsheet className="w-5 h-5 mr-2" />
-                  Export to Excel
-                </Button>
+              <div className="space-y-4">
+                {currentProcesses.map((process) => {
+                  const qualityInfo = getQualityStatus(process.goodRice);
+                  return (
+                    <div key={process.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="font-semibold text-lg">{process.name}</h3>
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${qualityInfo.color} bg-gray-100`}>
+                              {qualityInfo.status}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3">Date: {format(new Date(process.date), "PPP")}</p>
+                          
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                            <div className="bg-green-50 p-3 rounded-lg">
+                              <div className="text-green-600 font-semibold">Good Rice</div>
+                              <div className="text-xl font-bold text-green-700">{process.goodRice}%</div>
+                            </div>
+                            <div className="bg-red-50 p-3 rounded-lg">
+                              <div className="text-red-600 font-semibold">Rejection</div>
+                              <div className="text-xl font-bold text-red-700">{process.rejection}%</div>
+                            </div>
+                            <div className="bg-yellow-50 p-3 rounded-lg">
+                              <div className="text-yellow-600 font-semibold">Foreign Matter</div>
+                              <div className="text-xl font-bold text-yellow-700">{process.foreignMatter}%</div>
+                            </div>
+                            <div className="bg-blue-50 p-3 rounded-lg">
+                              <div className="text-blue-600 font-semibold">Total Quantity</div>
+                              <div className="text-xl font-bold text-blue-700">{process.totalQuantity}kg</div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="lg:ml-6">
+                          <Button
+                            onClick={() => handleDownloadReport(process.id, process.name)}
+                            className="bg-rice-primary hover:bg-rice-primary/90 text-white px-6 py-2"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download Report
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               
-              {(!fromDate || !toDate) && (
-                <p className="text-center text-sm text-gray-500 mt-4">
-                  Please select both start and end dates to enable export
-                </p>
-              )}
+                             {currentProcesses.length === 0 && (
+                 <div className="text-center py-8 text-gray-500">
+                   {fromDate && toDate 
+                     ? `No ${reportType} processes found for the selected date range (${format(fromDate, "MMM dd, yyyy")} - ${format(toDate, "MMM dd, yyyy")}).`
+                     : `No ${reportType} processes available. Select a date range to view processes.`
+                   }
+                 </div>
+               )}
             </CardContent>
           </Card>
         </div>
