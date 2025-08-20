@@ -57,7 +57,7 @@ const DataReports = () => {
     },
     {
       id: "M004",
-      name: "Shell Sort II",
+      name: "Shell Sort I",
       date: "2025-02-05", 
       goodRice: 91.9,
       rejection: 6.2,
