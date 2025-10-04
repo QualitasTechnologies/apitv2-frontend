@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Link } from "react-router-dom";
-import { Wheat, ArrowRight, Plus, X, Save } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Wheat, ArrowRight, Plus, X, Save, Settings, Play } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface CustomProperty {
@@ -18,22 +19,188 @@ interface CustomProperty {
   unit?: string;
 }
 
+interface ProcessDetailsFormProps {
+  process: string;
+  processDetails: Record<string, any>;
+  setProcessDetails: (details: Record<string, any>) => void;
+  onClose: () => void;
+}
+
+const ProcessDetailsForm = ({ process, processDetails, setProcessDetails, onClose }: ProcessDetailsFormProps) => {
+  const [formData, setFormData] = useState<Record<string, string>>(processDetails[process] || {});
+
+  const processConfigs: Record<string, Array<{stage: string, parameter: string, unit: string, key: string}>> = {
+    "double-boiled": [
+      { stage: "Presteaming", parameter: "Type", unit: "Holding/Continuous", key: "presteaming_type" },
+      { stage: "Presteaming", parameter: "Temperature", unit: "°C or °F", key: "presteaming_temperature" },
+      { stage: "Presteaming", parameter: "Steaming time (Holding)", unit: "mins", key: "presteaming_time" },
+      { stage: "Soaking time", parameter: "Temperature", unit: "°C or °F", key: "soaking_temperature" },
+      { stage: "Soaking time", parameter: "Time", unit: "mins", key: "soaking_time" },
+      { stage: "Final Steaming", parameter: "Type", unit: "Holding/Continuous", key: "final_steaming_type" },
+      { stage: "Final Steaming", parameter: "Temperature", unit: "°C or °F", key: "final_steaming_temperature" },
+      { stage: "Final Steaming", parameter: "Steaming time (Holding)", unit: "mins", key: "final_steaming_time" },
+      { stage: "Drying", parameter: "Time", unit: "mins", key: "drying_time" },
+      { stage: "Drying", parameter: "Max temp", unit: "°C or °F", key: "drying_max_temp" },
+      { stage: "Drying", parameter: "Min temp", unit: "°C or °F", key: "drying_min_temp" },
+      { stage: "Drying", parameter: "Final Moisture", unit: "%", key: "drying_final_moisture" }
+    ],
+    "single-boiled": [
+      { stage: "Soaking time", parameter: "Temperature", unit: "°C or °F", key: "soaking_temperature" },
+      { stage: "Soaking time", parameter: "Time", unit: "mins", key: "soaking_time" },
+      { stage: "Final Steaming", parameter: "Type", unit: "Holding/Continuous", key: "final_steaming_type" },
+      { stage: "Final Steaming", parameter: "Temperature", unit: "°C or °F", key: "final_steaming_temperature" },
+      { stage: "Final Steaming", parameter: "Steaming time (Holding)", unit: "mins", key: "final_steaming_time" },
+      { stage: "Drying", parameter: "Time", unit: "mins", key: "drying_time" },
+      { stage: "Drying", parameter: "Max temp", unit: "°C or °F", key: "drying_max_temp" },
+      { stage: "Drying", parameter: "Min temp", unit: "°C or °F", key: "drying_min_temp" },
+      { stage: "Drying", parameter: "Final Moisture", unit: "%", key: "drying_final_moisture" }
+    ],
+    "half-boiled": [
+      { stage: "Soaking time", parameter: "Temperature", unit: "°C or °F", key: "soaking_temperature" },
+      { stage: "Soaking time", parameter: "Time", unit: "mins", key: "soaking_time" },
+      { stage: "Final Steaming", parameter: "Type", unit: "Holding/Continuous", key: "final_steaming_type" },
+      { stage: "Final Steaming", parameter: "Temperature", unit: "°C or °F", key: "final_steaming_temperature" },
+      { stage: "Final Steaming", parameter: "Steaming time (Holding)", unit: "mins", key: "final_steaming_time" },
+      { stage: "Drying", parameter: "Time", unit: "mins", key: "drying_time" },
+      { stage: "Drying", parameter: "Max temp", unit: "°C or °F", key: "drying_max_temp" },
+      { stage: "Drying", parameter: "Min temp", unit: "°C or °F", key: "drying_min_temp" },
+      { stage: "Drying", parameter: "Final Moisture", unit: "%", key: "drying_final_moisture" }
+    ],
+    "sap": [
+      { stage: "Presteaming", parameter: "Type", unit: "Holding/Continuous", key: "presteaming_type" },
+      { stage: "Presteaming", parameter: "Temperature", unit: "°C or °F", key: "presteaming_temperature" },
+      { stage: "Presteaming", parameter: "Steaming time (Holding)", unit: "mins", key: "presteaming_time" },
+      { stage: "Resting time", parameter: "Temperature", unit: "°C or °F", key: "resting_temperature" },
+      { stage: "Resting time", parameter: "Time", unit: "mins", key: "resting_time" },
+      { stage: "Drying", parameter: "Time", unit: "mins", key: "drying_time" },
+      { stage: "Drying", parameter: "Max temp", unit: "°C or °F", key: "drying_max_temp" },
+      { stage: "Drying", parameter: "Min temp", unit: "°C or °F", key: "drying_min_temp" },
+      { stage: "Drying", parameter: "Final Moisture", unit: "%", key: "drying_final_moisture" }
+    ],
+    "super-parboiling": [
+      { stage: "Steaming", parameter: "Type", unit: "Holding/Continuous", key: "steaming_type" },
+      { stage: "Steaming", parameter: "Temperature", unit: "°C or °F", key: "steaming_temperature" },
+      { stage: "Steaming", parameter: "Steaming time (Holding)", unit: "mins", key: "steaming_time" },
+      { stage: "Resting time", parameter: "Temperature", unit: "°C or °F", key: "resting_temperature" },
+      { stage: "Resting time", parameter: "Time", unit: "mins", key: "resting_time" },
+      { stage: "Soaking time", parameter: "Temperature", unit: "°C or °F", key: "soaking_temperature" },
+      { stage: "Soaking time", parameter: "Time", unit: "mins", key: "soaking_time" },
+      { stage: "Final Steaming", parameter: "Type", unit: "Holding/Continuous", key: "final_steaming_type" },
+      { stage: "Final Steaming", parameter: "Temperature", unit: "°C or °F", key: "final_steaming_temperature" },
+      { stage: "Final Steaming", parameter: "Steaming time (Holding)", unit: "mins", key: "final_steaming_time" },
+      { stage: "Drying", parameter: "Time", unit: "mins", key: "drying_time" },
+      { stage: "Drying", parameter: "Max temp", unit: "°C or °F", key: "drying_max_temp" },
+      { stage: "Drying", parameter: "Min temp", unit: "°C or °F", key: "drying_min_temp" },
+      { stage: "Drying", parameter: "Final Moisture", unit: "%", key: "drying_final_moisture" }
+    ]
+  };
+
+  const currentConfig = processConfigs[process] || [];
+
+  const handleInputChange = (key: string, value: string) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = () => {
+    setProcessDetails(prev => ({ ...prev, [process]: formData }));
+    onClose();
+  };
+
+  const groupedByStage = currentConfig.reduce((acc, item) => {
+    if (!acc[item.stage]) {
+      acc[item.stage] = [];
+    }
+    acc[item.stage].push(item);
+    return acc;
+  }, {} as Record<string, typeof currentConfig>);
+
+  return (
+    <div className="space-y-6">
+      {Object.entries(groupedByStage).map(([stageName, stageItems]) => (
+        <div key={stageName} className="space-y-4">
+          <h3 className="text-lg font-semibold text-rice-primary border-b border-gray-200 pb-2">
+            {stageName}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {stageItems.map((item) => (
+              <div key={item.key} className="space-y-2">
+                <Label htmlFor={item.key} className="font-medium">
+                  {item.parameter} ({item.unit})
+                </Label>
+                {item.unit === "Holding/Continuous" ? (
+                  <Select 
+                    value={formData[item.key] || ""} 
+                    onValueChange={(value) => handleInputChange(item.key, value)}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="holding">Holding</SelectItem>
+                      <SelectItem value="continuous">Continuous</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id={item.key}
+                    type={item.unit === "%" || item.unit.includes("°") || item.unit === "mins" ? "number" : "text"}
+                    value={formData[item.key] || ""}
+                    onChange={(e) => handleInputChange(item.key, e.target.value)}
+                    placeholder={`Enter ${item.parameter.toLowerCase()}`}
+                    className="h-10"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      
+      <div className="flex justify-end space-x-2 pt-4 border-t">
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave} className="bg-rice-primary hover:bg-rice-primary/90">
+          Save Details
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const TellUsAboutGrain = () => {
   const { t } = useLanguage();
   
   // TellUsAboutGrain state
   const [variety, setVariety] = useState("");
   const [process, setProcess] = useState("");
-  const [testing, setTesting] = useState("");
-  const [sampling, setSampling] = useState("");
-  const [batchNumber, setBatchNumber] = useState("");
-  const [machine, setMachine] = useState("");
+  const [harvestSeason, setHarvestSeason] = useState("");
 
   // Dialog states for "Others" option
   const [isVarietyDialogOpen, setIsVarietyDialogOpen] = useState(false);
   const [isProcessDialogOpen, setIsProcessDialogOpen] = useState(false);
   const [customVariety, setCustomVariety] = useState("");
   const [customProcess, setCustomProcess] = useState("");
+
+  // Process details dialog state
+  const [isProcessDetailsDialogOpen, setIsProcessDetailsDialogOpen] = useState(false);
+  const [processDetails, setProcessDetails] = useState<Record<string, any>>({});
+
+  // Continue to analysis state
+  const [showAnalysisOptions, setShowAnalysisOptions] = useState(false);
+  const navigate = useNavigate();
+
+  // ID Generation state
+  const [idGenerationType, setIdGenerationType] = useState<"auto" | "custom">("auto");
+  const [customId, setCustomId] = useState("");
+
+  // Analysis type states
+  const [batchInput, setBatchInput] = useState("");
+  const [selectedMachine, setSelectedMachine] = useState("");
+  const [selectedSeries, setSelectedSeries] = useState("");
+  const [tamSelectedSeries, setTamSelectedSeries] = useState("");
+  const [samplingStrategy, setSamplingStrategy] = useState<"random" | "systematic">("random");
+  const [systematicValue, setSystematicValue] = useState("");
 
   // Default values for properties
   const defaultGeoProperties = {
@@ -59,6 +226,43 @@ const TellUsAboutGrain = () => {
     density: "1.4"
   };
 
+  // Variety-based fixed values for gelatinization and density
+  const getVarietyProperties = (selectedVariety: string) => {
+    const varietyData: Record<string, { gelatinization: string; density: string }> = {
+      "ambemohar": { gelatinization: "68", density: "1.42" },
+      "sona": { gelatinization: "72", density: "1.38" },
+      "adt": { gelatinization: "70", density: "1.40" },
+      "jsr": { gelatinization: "69", density: "1.41" },
+      "gobindobhog": { gelatinization: "71", density: "1.39" },
+      "hmt": { gelatinization: "73", density: "1.37" },
+      "indrayani": { gelatinization: "67", density: "1.43" },
+      "jeera samba": { gelatinization: "74", density: "1.36" },
+      "rnr": { gelatinization: "66", density: "1.44" },
+      "mogra": { gelatinization: "75", density: "1.35" },
+      "jaya": { gelatinization: "69", density: "1.41" },
+      "matta": { gelatinization: "76", density: "1.34" },
+      "parmal": { gelatinization: "68", density: "1.42" },
+      "ponni": { gelatinization: "70", density: "1.40" },
+      "pusa basmati": { gelatinization: "77", density: "1.33" },
+      "sharbati": { gelatinization: "71", density: "1.39" },
+      "sona masuri": { gelatinization: "72", density: "1.38" },
+      "kolam": { gelatinization: "69", density: "1.41" },
+      "bpt": { gelatinization: "70", density: "1.40" },
+      "katarni": { gelatinization: "73", density: "1.37" },
+      "mtu 1010": { gelatinization: "68", density: "1.42" },
+      "ir 64": { gelatinization: "71", density: "1.39" },
+      "rpn": { gelatinization: "69", density: "1.41" },
+      "ranjith": { gelatinization: "72", density: "1.38" },
+      "cauvery": { gelatinization: "70", density: "1.40" },
+      "baismutti": { gelatinization: "74", density: "1.36" },
+      "vnr": { gelatinization: "67", density: "1.43" },
+      "1509": { gelatinization: "75", density: "1.35" },
+      "1121": { gelatinization: "76", density: "1.34" }
+    };
+    
+    return varietyData[selectedVariety] || { gelatinization: "65", density: "1.4" };
+  };
+
   // KnowYourGrains state - initialized with default values
   const [geoProperties, setGeoProperties] = useState(defaultGeoProperties);
   const [chemicalProperties, setChemicalProperties] = useState(defaultChemicalProperties);
@@ -77,22 +281,27 @@ const TellUsAboutGrain = () => {
     unit: ""
   });
 
-  const isFormComplete = variety && process && testing && sampling && batchNumber && (testing !== "batch" || machine);
+  const isFormComplete = variety && process && harvestSeason;
 
-  // Machine options for batch testing
+  // Machine and series options
   const machineOptions = [
-    "Clean I (Precleaner)",
-    "Stone Sort I (Destoner)",
-    "Shell I (Husker)",
-    "Paddy Sort I (Tray seperator)",
-    "White I (Whitener)",
-    "Bright I (Silky polisher)",
-    "Thickthin Sort I (Thickness grader)",
-    "Sift I (Sifter)",
-    "Length Sort I (Length grader)",
-    "Blend & Pack I (Blend and Pack)",
-    "Intel Vision (Sortex/color sorter)"
+    "CLEAN - I",
+    "TRAY SEPARATOR", 
+    "WHITENER 1",
+    "WHITENER 2",
+    "WHITENER 3",
+    "SILKY 1",
+    "SILKY 2",
+    "LENGTH GRADER",
+    "COLOUR SORTER"
   ];
+
+  const seriesOptions = [
+    "I-5 Series",
+    "Uni-2 Series", 
+    "Classic Series"
+  ];
+
 
   // TellUsAboutGrain handlers
   const handleVarietyChange = (value: string) => {
@@ -100,6 +309,13 @@ const TellUsAboutGrain = () => {
       setIsVarietyDialogOpen(true);
     } else {
       setVariety(value);
+      // Update gelatinization and density based on variety
+      const varietyProps = getVarietyProperties(value);
+      setGmadProperties(prev => ({
+        ...prev,
+        gelatinization: varietyProps.gelatinization,
+        density: varietyProps.density
+      }));
     }
   };
 
@@ -111,17 +327,18 @@ const TellUsAboutGrain = () => {
     }
   };
 
-  const handleTestingChange = (value: string) => {
-    setTesting(value);
-    // Reset machine selection when changing testing type
-    if (value !== "batch") {
-      setMachine("");
-    }
-  };
 
   const handleCustomVarietySubmit = () => {
     if (customVariety.trim()) {
-      setVariety(customVariety.trim());
+      const varietyValue = customVariety.trim();
+      setVariety(varietyValue);
+      // Update gelatinization and density based on variety
+      const varietyProps = getVarietyProperties(varietyValue);
+      setGmadProperties(prev => ({
+        ...prev,
+        gelatinization: varietyProps.gelatinization,
+        density: varietyProps.density
+      }));
       setCustomVariety("");
       setIsVarietyDialogOpen(false);
     }
@@ -185,6 +402,45 @@ const TellUsAboutGrain = () => {
     setCustomProperties(prev => prev.filter(prop => prop.id !== id));
   };
 
+  // Analysis navigation handlers
+  const handleContinueToAnalysis = () => {
+    setShowAnalysisOptions(true);
+    
+    // Scroll to the new sections after a brief delay to allow for rendering
+    setTimeout(() => {
+      const analysisSection = document.getElementById('analysis-sections');
+      if (analysisSection) {
+        analysisSection.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }
+    }, 100);
+  };
+
+  const handleAnalyze = (analysisType: string, additionalData?: any) => {
+    const analysisData = {
+      variety,
+      process,
+      harvestSeason,
+      idType: idGenerationType,
+      customId: idGenerationType === "custom" ? customId : undefined,
+      analysisType,
+      ...additionalData
+    };
+    
+    console.log("Starting analysis with data:", analysisData);
+    navigate("/live-analysis", { state: analysisData });
+  };
+
+
+  // Validation functions
+  const isBatchAnalysisValid = () => batchInput.trim() !== "";
+  const isMachineWiseValid = () => selectedMachine !== "" && selectedSeries !== "";
+  const isTamValid = () => 
+    tamSelectedSeries !== "" && 
+    (samplingStrategy === "random" || (samplingStrategy === "systematic" && systematicValue !== ""));
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <PageHeader 
@@ -203,7 +459,7 @@ const TellUsAboutGrain = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Variety */}
                 <div className="space-y-4">
                   <Label className="text-lg font-semibold">Variety</Label>
@@ -267,91 +523,55 @@ const TellUsAboutGrain = () => {
                   <Select value={process} onValueChange={handleProcessChange}>
                     <SelectTrigger className="h-12 border-2 hover:border-rice-primary transition-colors">
                       <SelectValue placeholder="Select process">
-                        {process && !["parboiled", "super-aging", "raw", "others"].includes(process) ? process : undefined}
+                        {process && !["parboiled", "super-aging", "raw", "double-boiled", "single-boiled", "half-boiled", "sap", "super-parboiling", "others"].includes(process) ? process : undefined}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="parboiled">Parboiled</SelectItem>
                       <SelectItem value="super-aging">Super Aging</SelectItem>
                       <SelectItem value="raw">Raw</SelectItem>
+                      <SelectItem value="double-boiled">Double Boiled</SelectItem>
+                      <SelectItem value="single-boiled">Single Boiled</SelectItem>
+                      <SelectItem value="half-boiled">Half Boiled</SelectItem>
+                      <SelectItem value="sap">SAP</SelectItem>
+                      <SelectItem value="super-parboiling">Super Parboiling</SelectItem>
                       <SelectItem value="others">Others</SelectItem>
-                      {process && !["parboiled", "super-aging", "raw", "others"].includes(process) && (
+                      {process && !["parboiled", "super-aging", "raw", "double-boiled", "single-boiled", "half-boiled", "sap", "super-parboiling", "others"].includes(process) && (
                         <SelectItem value={process}>{process}</SelectItem>
                       )}
                     </SelectContent>
                   </Select>
+                  
+                  {/* Process Details Button - Only show when process is selected and is one of the detailed processes */}
+                  {process && ["double-boiled", "single-boiled", "half-boiled", "sap", "super-parboiling"].includes(process) && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsProcessDetailsDialogOpen(true)}
+                      className="w-full mt-2 border-rice-primary text-rice-primary hover:bg-rice-primary hover:text-white"
+                    >
+                      Add Process Details (Optional)
+                    </Button>
+                  )}
+                </div>
+
+                {/* Harvest Season */}
+                <div className="space-y-4">
+                  <Label className="text-lg font-semibold">Harvest Season</Label>
+                  <Select value={harvestSeason} onValueChange={setHarvestSeason}>
+                    <SelectTrigger className="h-12 border-2 hover:border-rice-primary transition-colors">
+                      <SelectValue placeholder="Select harvest season" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="harvest-season-1">Harvest Season 1</SelectItem>
+                      <SelectItem value="harvest-season-2">Harvest Season 2</SelectItem>
+                      <SelectItem value="harvest-season-3">Harvest Season 3</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Testing Parameters */}
-          <Card className="animate-fade-in" style={{ animationDelay: "200ms" }}>
-            <CardHeader>
-              <CardTitle className="text-rice-primary">Testing Parameters</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Testing Type */}
-                <div className="space-y-4">
-                  <Label className="text-lg font-semibold">Testing Type</Label>
-                  <Select value={testing} onValueChange={handleTestingChange}>
-                    <SelectTrigger className="h-12 border-2 hover:border-rice-primary transition-colors">
-                      <SelectValue placeholder="Select testing type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="individual">Individual</SelectItem>
-                      <SelectItem value="batch">Batch</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Machine - Only show when testing type is "batch" */}
-                {testing === "batch" && (
-                  <div className="space-y-4">
-                    <Label className="text-lg font-semibold">Machine</Label>
-                    <Select value={machine} onValueChange={setMachine}>
-                      <SelectTrigger className="h-12 border-2 hover:border-rice-primary transition-colors">
-                        <SelectValue placeholder="Select machine" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {machineOptions.map((machineOption) => (
-                          <SelectItem key={machineOption} value={machineOption}>
-                            {machineOption}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {/* Sampling Technique */}
-                <div className="space-y-4">
-                  <Label className="text-lg font-semibold">Sampling Technique</Label>
-                  <Select value={sampling} onValueChange={setSampling}>
-                    <SelectTrigger className="h-12 border-2 hover:border-rice-primary transition-colors">
-                      <SelectValue placeholder="Select sampling technique" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="systematic">Systematic</SelectItem>
-                      <SelectItem value="stratified">Stratified</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Batch Number */}
-                <div className="space-y-4">
-                  <Label className="text-lg font-semibold">Batch Number</Label>
-                  <Input 
-                    value={batchNumber} 
-                    onChange={(e) => setBatchNumber(e.target.value)}
-                    placeholder="Enter batch number"
-                    className="h-12 border-2 hover:border-rice-primary transition-colors"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Selection Summary */}
           {isFormComplete && (
@@ -360,7 +580,7 @@ const TellUsAboutGrain = () => {
                 <CardTitle className="text-rice-primary">Selection Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm">
                   <div>
                     <span className="font-semibold text-gray-600">Variety:</span>
                     <p className="font-medium uppercase">{variety}</p>
@@ -370,22 +590,8 @@ const TellUsAboutGrain = () => {
                     <p className="font-medium capitalize">{process}</p>
                   </div>
                   <div>
-                    <span className="font-semibold text-gray-600">Testing:</span>
-                    <p className="font-medium capitalize">{testing}</p>
-                  </div>
-                  {testing === "batch" && machine && (
-                    <div>
-                      <span className="font-semibold text-gray-600">Machine:</span>
-                      <p className="font-medium">{machine}</p>
-                    </div>
-                  )}
-                  <div>
-                    <span className="font-semibold text-gray-600">Sampling:</span>
-                    <p className="font-medium capitalize">{sampling}</p>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-gray-600">Batch Number:</span>
-                    <p className="font-medium">{batchNumber}</p>
+                    <span className="font-semibold text-gray-600">Harvest Season:</span>
+                    <p className="font-medium capitalize">{harvestSeason.replace('-', ' ')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -578,14 +784,15 @@ const TellUsAboutGrain = () => {
               <CardContent>
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="gelatinization" className="font-medium">{t('knowGrains.gelatinization')}</Label>
+                    <Label htmlFor="gelatinization" className="font-medium">Gelatinization Temperature (°C)</Label>
                     <Input
                       id="gelatinization"
                       type="number"
                       placeholder="65"
                       value={gmadProperties.gelatinization}
-                      onChange={(e) => updateGmadProperty('gelatinization', e.target.value)}
-                      className="h-12"
+                      readOnly
+                      className="h-12 bg-gray-100 cursor-not-allowed"
+                      title="This value is automatically set based on the selected variety"
                     />
                   </div>
                   
@@ -614,14 +821,15 @@ const TellUsAboutGrain = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="density" className="font-medium">{t('knowGrains.density')}</Label>
+                    <Label htmlFor="density" className="font-medium">Density (g/cm³)</Label>
                     <Input
                       id="density"
                       type="number"
                       placeholder="1.4"
                       value={gmadProperties.density}
-                      onChange={(e) => updateGmadProperty('density', e.target.value)}
-                      className="h-12"
+                      readOnly
+                      className="h-12 bg-gray-100 cursor-not-allowed"
+                      title="This value is automatically set based on the selected variety"
                     />
                   </div>
                 </div>
@@ -716,15 +924,243 @@ const TellUsAboutGrain = () => {
               </DialogContent>
             </Dialog>
             
-            <Link to="/live-analysis">
-              <Button 
-                className="bg-rice-secondary text-rice-primary hover:bg-rice-secondary/90 px-8 py-3 font-bold"
-              >
-                {t('knowGrains.continueToLive')}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
+            <Button 
+              onClick={handleContinueToAnalysis}
+              className="bg-rice-secondary text-rice-primary hover:bg-rice-secondary/90 px-8 py-3 font-bold"
+            >
+              {t('knowGrains.continueToLive')}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
           </div>
+
+          {/* ID Generation and Analysis Type Sections - Only show after Continue button is clicked */}
+          {showAnalysisOptions && (
+            <div id="analysis-sections">
+              {/* ID Generation Section */}
+              <Card className="animate-fade-in">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-rice-primary">
+                    <Settings className="w-6 h-6" />
+                    <span>ID Generation</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex space-x-4 mb-4">
+                    <Button
+                      variant={idGenerationType === "auto" ? "default" : "outline"}
+                      onClick={() => setIdGenerationType("auto")}
+                      className={idGenerationType === "auto" ? "bg-rice-primary hover:bg-rice-primary/90" : ""}
+                    >
+                      Auto ID Generation
+                    </Button>
+                    <Button
+                      variant={idGenerationType === "custom" ? "default" : "outline"}
+                      onClick={() => setIdGenerationType("custom")}
+                      className={idGenerationType === "custom" ? "bg-rice-primary hover:bg-rice-primary/90" : ""}
+                    >
+                      Custom ID Generation
+                    </Button>
+                  </div>
+                  
+                  {idGenerationType === "custom" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-id">Enter Custom ID</Label>
+                      <Input
+                        id="custom-id"
+                        value={customId}
+                        onChange={(e) => setCustomId(e.target.value)}
+                        placeholder="Enter your custom ID"
+                        className="max-w-md"
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Analysis Type Section */}
+              <Card className="animate-fade-in" style={{ animationDelay: "200ms" }}>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-rice-primary">
+                    <Play className="w-6 h-6" />
+                    <span>Analysis Type</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Individual Analysis */}
+                    <div className="p-4 border border-gray-200 rounded-lg space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-800">Individual</h3>
+                      <p className="text-sm text-gray-600">Spot-check a single sample</p>
+                      <Button 
+                        onClick={() => handleAnalyze("individual")}
+                        className="w-full bg-rice-primary hover:bg-rice-primary/90"
+                      >
+                        Analyze
+                      </Button>
+                    </div>
+
+                    {/* Batch Analysis */}
+                    <div className="p-4 border border-gray-200 rounded-lg space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-800">Batch</h3>
+                      <p className="text-sm text-gray-600">Analyze a particular batch</p>
+                      <Input
+                        value={batchInput}
+                        onChange={(e) => setBatchInput(e.target.value)}
+                        placeholder="Enter Bin number"
+                        className="w-full"
+                      />
+                      <Button 
+                        onClick={() => handleAnalyze("batch", { batchId: batchInput })}
+                        disabled={!isBatchAnalysisValid()}
+                        className="w-full bg-rice-primary hover:bg-rice-primary/90 disabled:bg-gray-300"
+                      >
+                        Analyze
+                      </Button>
+                    </div>
+
+                    {/* Machine Wise Analysis */}
+                    <div className="p-4 border border-gray-200 rounded-lg space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-800">Machine Wise</h3>
+                      <p className="text-sm text-gray-600">Evaluate a specific machine's current performance.</p>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-sm font-medium">Machine Name</Label>
+                          <Select value={selectedMachine} onValueChange={setSelectedMachine}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select machine" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {machineOptions.map((machine) => (
+                                <SelectItem key={machine} value={machine}>
+                                  {machine}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label className="text-sm font-medium">Series</Label>
+                          <Select value={selectedSeries} onValueChange={setSelectedSeries}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select series" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {seriesOptions.map((series) => (
+                                <SelectItem key={series} value={series}>
+                                  {series}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        onClick={() => handleAnalyze("machine-wise", { 
+                          machine: selectedMachine, 
+                          series: selectedSeries 
+                        })}
+                        disabled={!isMachineWiseValid()}
+                        className="w-full bg-rice-primary hover:bg-rice-primary/90 disabled:bg-gray-300"
+                      >
+                        Analyze
+                      </Button>
+                    </div>
+
+                    {/* TAM Analysis */}
+                    <div className="p-4 border border-gray-200 rounded-lg space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-800">TAM (Total Mill Analyzer)</h3>
+                      <p className="text-sm text-gray-600">Evaluate entire Mill's performance.</p>
+                      
+                      <div className="space-y-4">
+                        {/* Machine Selection - Fixed Display */}
+                        <div>
+                          <Label className="text-sm font-medium mb-2 block">Selected Machines</Label>
+                          <div className="border border-gray-200 rounded p-3 bg-gray-50">
+                            <div className="grid grid-cols-1 gap-2">
+                              {machineOptions.map((machine, index) => (
+                                <div key={machine} className="flex items-center space-x-2">
+                                  <div className="w-2 h-2 bg-rice-primary rounded-full"></div>
+                                  <span className="text-sm font-medium text-gray-700">
+                                    {machine}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Series Selection */}
+                        <div>
+                          <Label className="text-sm font-medium">Series</Label>
+                          <Select value={tamSelectedSeries} onValueChange={setTamSelectedSeries}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select series" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {seriesOptions.map((series) => (
+                                <SelectItem key={series} value={series}>
+                                  {series}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Sampling Strategy */}
+                        <div>
+                          <Label className="text-sm font-medium mb-2 block">Sampling Strategy</Label>
+                          <div className="flex space-x-4 mb-2">
+                            <Button
+                              variant={samplingStrategy === "random" ? "default" : "outline"}
+                              onClick={() => setSamplingStrategy("random")}
+                              size="sm"
+                              className={samplingStrategy === "random" ? "bg-rice-primary hover:bg-rice-primary/90" : ""}
+                            >
+                              Random
+                            </Button>
+                            <Button
+                              variant={samplingStrategy === "systematic" ? "default" : "outline"}
+                              onClick={() => setSamplingStrategy("systematic")}
+                              size="sm"
+                              className={samplingStrategy === "systematic" ? "bg-rice-primary hover:bg-rice-primary/90" : ""}
+                            >
+                              Systematic
+                            </Button>
+                          </div>
+                          
+                          {samplingStrategy === "systematic" && (
+                            <Input
+                              type="number"
+                              value={systematicValue}
+                              onChange={(e) => setSystematicValue(e.target.value)}
+                              placeholder="Enter systematic value"
+                              className="w-full"
+                            />
+                          )}
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        onClick={() => handleAnalyze("tam", { 
+                          machines: machineOptions,
+                          series: tamSelectedSeries,
+                          samplingStrategy,
+                          systematicValue: samplingStrategy === "systematic" ? systematicValue : undefined
+                        })}
+                        disabled={!isTamValid()}
+                        className="w-full bg-rice-primary hover:bg-rice-primary/90 disabled:bg-gray-300"
+                      >
+                        Analyze
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
 
@@ -791,6 +1227,23 @@ const TellUsAboutGrain = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Process Details Dialog */}
+      <Dialog open={isProcessDetailsDialogOpen} onOpenChange={setIsProcessDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {process && `${process.charAt(0).toUpperCase() + process.slice(1).replace('-', ' ')} Process Details`}
+            </DialogTitle>
+          </DialogHeader>
+          <ProcessDetailsForm 
+            process={process} 
+            processDetails={processDetails}
+            setProcessDetails={setProcessDetails}
+            onClose={() => setIsProcessDetailsDialogOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

@@ -156,8 +156,15 @@ const Dashboard = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-xl font-semibold text-green-700">Accepted</span>
+                    <span className="text-xl font-semibold text-green-700">Head-Rice</span>
                   </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200 hover:border-blue-300 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-medium text-gray-600 uppercase tracking-wide">RGB Index</span>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-700">73</div>
                 </div>
               </div>
 
@@ -171,7 +178,7 @@ const Dashboard = () => {
                         <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:shadow-xl transition-all duration-300">
                           <span className="text-xl font-bold text-white">65%</span>
                         </div>
-                        <span className="text-sm font-semibold text-green-700 uppercase tracking-wide">Accepted</span>
+                        <span className="text-sm font-semibold text-green-700 uppercase tracking-wide">Head-Rice</span>
                         <div className="mt-2 h-2 bg-green-200 rounded-full overflow-hidden">
                           <div className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full animate-[slideIn_1.5s_ease-out] w-[65%]"></div>
                         </div>
@@ -185,7 +192,7 @@ const Dashboard = () => {
                         <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:shadow-xl transition-all duration-300">
                           <span className="text-xl font-bold text-white">12%</span>
                         </div>
-                        <span className="text-sm font-semibold text-red-700 uppercase tracking-wide">Rejected</span>
+                        <span className="text-sm font-semibold text-red-700 uppercase tracking-wide">Defects & Impurities</span>
                         <div className="mt-2 h-2 bg-red-200 rounded-full overflow-hidden">
                           <div className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full animate-[slideIn_1.8s_ease-out] w-[12%]"></div>
                         </div>
