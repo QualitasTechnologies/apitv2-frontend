@@ -81,7 +81,7 @@ const translations = {
     'knowGrains.age': 'Age (Months)',
     'knowGrains.density': 'Density (g/cm³)',
     'knowGrains.addMoreInfo': 'Add More Info',
-    'knowGrains.continueToLive': 'Continue to Live Analysis',
+    'knowGrains.continueToLive': 'Continue to Mode selection',
     'knowGrains.addProperty': 'Add New Property',
     'knowGrains.propertyName': 'Property Name',
     'knowGrains.propertyValue': 'Property Value',
