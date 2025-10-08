@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAnalysis } from "@/contexts/AnalysisContext";
 
 import {
   Sidebar,
@@ -66,6 +67,7 @@ const menuItems = [
 export function AppSidebar() {
   const location = useLocation();
   const { t } = useLanguage();
+  const { hasStartedAnalysis } = useAnalysis();
 
   return (
     <Sidebar className="bg-rice-primary border-0">
@@ -76,7 +78,7 @@ export function AppSidebar() {
           </div>
           <div className="text-white">
             <div className="font-bold text-lg">APIT</div>
-            <div className="text-sm opacity-80">Rice Doctor</div>
+            <div className="text-sm opacity-80">RAICE LABZ</div>
           </div>
         </div>
       </SidebarHeader>
@@ -87,23 +89,30 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.titleKey}>
-                  <SidebarMenuButton
-                    asChild
-                    className={`text-white/90 hover:bg-white/10 hover:text-white hover:shadow-lg hover:border-l-4 hover:border-rice-secondary transition-all duration-300 ease-in-out hover:scale-[1.02] mb-1 rounded-lg backdrop-blur-sm ${
-                      location.pathname === item.url 
-                        ? 'bg-white/15 text-white border-l-4 border-rice-secondary shadow-md' 
-                        : 'hover:bg-gradient-to-r hover:from-white/10 hover:to-white/5'
-                    }`}
-                  >
-                    <Link to={item.url}>
-                      <item.icon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-                      <span className="font-medium transition-all duration-300">{t(item.titleKey)}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) => {
+                // Hide Live Analysis menu item if user hasn't started analysis
+                if (item.url === "/live-analysis" && !hasStartedAnalysis) {
+                  return null;
+                }
+                
+                return (
+                  <SidebarMenuItem key={item.titleKey}>
+                    <SidebarMenuButton
+                      asChild
+                      className={`text-white/90 hover:bg-white/10 hover:text-white hover:shadow-lg hover:border-l-4 hover:border-rice-secondary transition-all duration-300 ease-in-out hover:scale-[1.02] mb-1 rounded-lg backdrop-blur-sm ${
+                        location.pathname === item.url 
+                          ? 'bg-white/15 text-white border-l-4 border-rice-secondary shadow-md' 
+                          : 'hover:bg-gradient-to-r hover:from-white/10 hover:to-white/5'
+                      }`}
+                    >
+                      <Link to={item.url}>
+                        <item.icon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                        <span className="font-medium transition-all duration-300">{t(item.titleKey)}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

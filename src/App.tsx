@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { AnalysisProvider } from "@/contexts/AnalysisContext";
+import { MachineProvider } from "@/contexts/MachineContext";
 import LoadingPage from "@/components/LoadingPage";
 import Dashboard from "./pages/Dashboard";
 import TellUsAboutGrain from "./pages/TellUsAboutGrain";
@@ -34,9 +36,11 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <LanguageProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+          <AnalysisProvider>
+            <MachineProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <SidebarProvider>
               <div className="min-h-screen flex w-full bg-gray-50">
                 <AppSidebar />
@@ -55,6 +59,8 @@ const App = () => {
               </div>
             </SidebarProvider>
           </BrowserRouter>
+            </MachineProvider>
+          </AnalysisProvider>
         </LanguageProvider>
       </TooltipProvider>
     </QueryClientProvider>

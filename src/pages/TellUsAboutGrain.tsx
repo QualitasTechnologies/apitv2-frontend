@@ -11,6 +11,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { Wheat, ArrowRight, Plus, X, Save, Settings, Play } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAnalysis } from "@/contexts/AnalysisContext";
+import { useMachine } from "@/contexts/MachineContext";
 
 interface CustomProperty {
   id: string;
@@ -170,6 +172,8 @@ const ProcessDetailsForm = ({ process, processDetails, setProcessDetails, onClos
 
 const TellUsAboutGrain = () => {
   const { t } = useLanguage();
+  const { setHasStartedAnalysis } = useAnalysis();
+  const { machines } = useMachine();
   
   // TellUsAboutGrain state
   const [variety, setVariety] = useState("");
@@ -195,10 +199,11 @@ const TellUsAboutGrain = () => {
   const [customId, setCustomId] = useState("");
 
   // Analysis type states
+  const [selectedAnalysisMode, setSelectedAnalysisMode] = useState("");
   const [batchInput, setBatchInput] = useState("");
   const [selectedMachine, setSelectedMachine] = useState("");
   const [selectedSeries, setSelectedSeries] = useState("");
-  const [tamSelectedSeries, setTamSelectedSeries] = useState("");
+  const [tmaSelectedSeries, setTmaSelectedSeries] = useState("");
   const [samplingStrategy, setSamplingStrategy] = useState<"random" | "systematic">("random");
   const [systematicValue, setSystematicValue] = useState("");
 
@@ -282,19 +287,10 @@ const TellUsAboutGrain = () => {
   });
 
   const isFormComplete = variety && process && harvestSeason;
+  const canContinueToAnalysis = variety && process;
 
   // Machine and series options
-  const machineOptions = [
-    "CLEAN - I",
-    "TRAY SEPARATOR", 
-    "WHITENER 1",
-    "WHITENER 2",
-    "WHITENER 3",
-    "SILKY 1",
-    "SILKY 2",
-    "LENGTH GRADER",
-    "COLOUR SORTER"
-  ];
+  const machineOptions = machines;
 
   const seriesOptions = [
     "I-5 Series",
@@ -437,9 +433,52 @@ const TellUsAboutGrain = () => {
   // Validation functions
   const isBatchAnalysisValid = () => batchInput.trim() !== "";
   const isMachineWiseValid = () => selectedMachine !== "" && selectedSeries !== "";
-  const isTamValid = () => 
-    tamSelectedSeries !== "" && 
+  const isTmaValid = () => 
+    tmaSelectedSeries !== "" && 
     (samplingStrategy === "random" || (samplingStrategy === "systematic" && systematicValue !== ""));
+  
+  // Check if analyze button should be enabled
+  const isAnalyzeEnabled = () => {
+    switch (selectedAnalysisMode) {
+      case "individual":
+        return true;
+      case "batch":
+        return isBatchAnalysisValid();
+      case "machine-wise":
+        return isMachineWiseValid();
+      case "tma":
+        return isTmaValid();
+      default:
+        return false;
+    }
+  };
+  
+  // Handle analyze button click
+  const handleAnalyzeClick = () => {
+    let additionalData = {};
+    
+    switch (selectedAnalysisMode) {
+      case "batch":
+        additionalData = { batchId: batchInput };
+        break;
+      case "machine-wise":
+        additionalData = { machine: selectedMachine, series: selectedSeries };
+        break;
+      case "tma":
+        additionalData = {
+          machines: machineOptions,
+          series: tmaSelectedSeries,
+          samplingStrategy,
+          systematicValue: samplingStrategy === "systematic" ? systematicValue : undefined
+        };
+        break;
+    }
+    
+    // Set the analysis state to show Live Analysis in navigation
+    setHasStartedAnalysis(true);
+    
+    handleAnalyze(selectedAnalysisMode, additionalData);
+  };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -523,12 +562,10 @@ const TellUsAboutGrain = () => {
                   <Select value={process} onValueChange={handleProcessChange}>
                     <SelectTrigger className="h-12 border-2 hover:border-rice-primary transition-colors">
                       <SelectValue placeholder="Select process">
-                        {process && !["parboiled", "super-aging", "raw", "double-boiled", "single-boiled", "half-boiled", "sap", "super-parboiling", "others"].includes(process) ? process : undefined}
+                        {process && !["raw", "double-boiled", "single-boiled", "half-boiled", "sap", "super-parboiling", "others"].includes(process) ? process : undefined}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="parboiled">Parboiled</SelectItem>
-                      <SelectItem value="super-aging">Super Aging</SelectItem>
                       <SelectItem value="raw">Raw</SelectItem>
                       <SelectItem value="double-boiled">Double Boiled</SelectItem>
                       <SelectItem value="single-boiled">Single Boiled</SelectItem>
@@ -536,7 +573,7 @@ const TellUsAboutGrain = () => {
                       <SelectItem value="sap">SAP</SelectItem>
                       <SelectItem value="super-parboiling">Super Parboiling</SelectItem>
                       <SelectItem value="others">Others</SelectItem>
-                      {process && !["parboiled", "super-aging", "raw", "double-boiled", "single-boiled", "half-boiled", "sap", "super-parboiling", "others"].includes(process) && (
+                      {process && !["raw", "double-boiled", "single-boiled", "half-boiled", "sap", "super-parboiling", "others"].includes(process) && (
                         <SelectItem value={process}>{process}</SelectItem>
                       )}
                     </SelectContent>
@@ -562,9 +599,8 @@ const TellUsAboutGrain = () => {
                       <SelectValue placeholder="Select harvest season" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="harvest-season-1">Harvest Season 1</SelectItem>
-                      <SelectItem value="harvest-season-2">Harvest Season 2</SelectItem>
-                      <SelectItem value="harvest-season-3">Harvest Season 3</SelectItem>
+                      <SelectItem value="rabi">Rabi</SelectItem>
+                      <SelectItem value="kharif">Kharif</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -591,7 +627,7 @@ const TellUsAboutGrain = () => {
                   </div>
                   <div>
                     <span className="font-semibold text-gray-600">Harvest Season:</span>
-                    <p className="font-medium capitalize">{harvestSeason.replace('-', ' ')}</p>
+                    <p className="font-medium capitalize">{harvestSeason}</p>
                   </div>
                 </div>
               </CardContent>
@@ -924,13 +960,15 @@ const TellUsAboutGrain = () => {
               </DialogContent>
             </Dialog>
             
-            <Button 
-              onClick={handleContinueToAnalysis}
-              className="bg-rice-secondary text-rice-primary hover:bg-rice-secondary/90 px-8 py-3 font-bold"
-            >
-              {t('knowGrains.continueToLive')}
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            {canContinueToAnalysis && (
+              <Button 
+                onClick={handleContinueToAnalysis}
+                className="bg-rice-secondary text-rice-primary hover:bg-rice-secondary/90 px-8 py-3 font-bold"
+              >
+                Continue to Mode Selection
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            )}
           </div>
 
           {/* ID Generation and Analysis Type Sections - Only show after Continue button is clicked */}
@@ -967,9 +1005,17 @@ const TellUsAboutGrain = () => {
                       <Label htmlFor="custom-id">Enter Custom ID</Label>
                       <Input
                         id="custom-id"
+                        type="number"
                         value={customId}
-                        onChange={(e) => setCustomId(e.target.value)}
-                        placeholder="Enter your custom ID"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Only allow numeric input up to 4 characters
+                          if (value === '' || (/^\d{1,4}$/.test(value))) {
+                            setCustomId(value);
+                          }
+                        }}
+                        placeholder="Enter 4-digit ID"
+                        maxLength={4}
                         className="max-w-md"
                       />
                     </div>
@@ -986,176 +1032,254 @@ const TellUsAboutGrain = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Individual Analysis */}
-                    <div className="p-4 border border-gray-200 rounded-lg space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-800">Individual</h3>
-                      <p className="text-sm text-gray-600">Spot-check a single sample</p>
-                      <Button 
-                        onClick={() => handleAnalyze("individual")}
-                        className="w-full bg-rice-primary hover:bg-rice-primary/90"
-                      >
-                        Analyze
-                      </Button>
-                    </div>
-
-                    {/* Batch Analysis */}
-                    <div className="p-4 border border-gray-200 rounded-lg space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-800">Batch</h3>
-                      <p className="text-sm text-gray-600">Analyze a particular batch</p>
-                      <Input
-                        value={batchInput}
-                        onChange={(e) => setBatchInput(e.target.value)}
-                        placeholder="Enter Bin number"
-                        className="w-full"
-                      />
-                      <Button 
-                        onClick={() => handleAnalyze("batch", { batchId: batchInput })}
-                        disabled={!isBatchAnalysisValid()}
-                        className="w-full bg-rice-primary hover:bg-rice-primary/90 disabled:bg-gray-300"
-                      >
-                        Analyze
-                      </Button>
-                    </div>
-
-                    {/* Machine Wise Analysis */}
-                    <div className="p-4 border border-gray-200 rounded-lg space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-800">Machine Wise</h3>
-                      <p className="text-sm text-gray-600">Evaluate a specific machine's current performance.</p>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">Machine Name</Label>
-                          <Select value={selectedMachine} onValueChange={setSelectedMachine}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select machine" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {machineOptions.map((machine) => (
-                                <SelectItem key={machine} value={machine}>
-                                  {machine}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                  <div className="space-y-6">
+                    {/* Mode Selection */}
+                    <div className="space-y-4">
+                      <Label className="text-lg font-semibold">Select Analysis Mode</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Individual Mode */}
+                        <div 
+                          className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            selectedAnalysisMode === "individual" 
+                              ? "border-rice-primary bg-rice-primary/5" 
+                              : "border-gray-200 hover:border-rice-primary/50"
+                          }`}
+                          onClick={() => setSelectedAnalysisMode("individual")}
+                        >
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Checkbox 
+                              checked={selectedAnalysisMode === "individual"}
+                              onChange={() => {}}
+                              className="pointer-events-none"
+                            />
+                            <h3 className="font-semibold text-gray-800">Individual</h3>
+                          </div>
+                          <p className="text-sm text-gray-600">Spot-check a single sample</p>
                         </div>
-                        
-                        <div>
-                          <Label className="text-sm font-medium">Series</Label>
-                          <Select value={selectedSeries} onValueChange={setSelectedSeries}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select series" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {seriesOptions.map((series) => (
-                                <SelectItem key={series} value={series}>
-                                  {series}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+
+                        {/* Batch Mode */}
+                        <div 
+                          className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            selectedAnalysisMode === "batch" 
+                              ? "border-rice-primary bg-rice-primary/5" 
+                              : "border-gray-200 hover:border-rice-primary/50"
+                          }`}
+                          onClick={() => setSelectedAnalysisMode("batch")}
+                        >
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Checkbox 
+                              checked={selectedAnalysisMode === "batch"}
+                              onChange={() => {}}
+                              className="pointer-events-none"
+                            />
+                            <h3 className="font-semibold text-gray-800">Batch</h3>
+                          </div>
+                          <p className="text-sm text-gray-600">Analyze a particular batch</p>
+                        </div>
+
+                        {/* Machine Wise Mode */}
+                        <div 
+                          className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            selectedAnalysisMode === "machine-wise" 
+                              ? "border-rice-primary bg-rice-primary/5" 
+                              : "border-gray-200 hover:border-rice-primary/50"
+                          }`}
+                          onClick={() => setSelectedAnalysisMode("machine-wise")}
+                        >
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Checkbox 
+                              checked={selectedAnalysisMode === "machine-wise"}
+                              onChange={() => {}}
+                              className="pointer-events-none"
+                            />
+                            <h3 className="font-semibold text-gray-800">Machine Wise</h3>
+                          </div>
+                          <p className="text-sm text-gray-600">Evaluate specific machine performance</p>
+                        </div>
+
+                        {/* TMA Mode */}
+                        <div 
+                          className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            selectedAnalysisMode === "tma" 
+                              ? "border-rice-primary bg-rice-primary/5" 
+                              : "border-gray-200 hover:border-rice-primary/50"
+                          }`}
+                          onClick={() => setSelectedAnalysisMode("tma")}
+                        >
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Checkbox 
+                              checked={selectedAnalysisMode === "tma"}
+                              onChange={() => {}}
+                              className="pointer-events-none"
+                            />
+                            <h3 className="font-semibold text-gray-800">TMA</h3>
+                          </div>
+                          <p className="text-sm text-gray-600">Total Mill Analyzer</p>
                         </div>
                       </div>
-                      
-                      <Button 
-                        onClick={() => handleAnalyze("machine-wise", { 
-                          machine: selectedMachine, 
-                          series: selectedSeries 
-                        })}
-                        disabled={!isMachineWiseValid()}
-                        className="w-full bg-rice-primary hover:bg-rice-primary/90 disabled:bg-gray-300"
-                      >
-                        Analyze
-                      </Button>
                     </div>
 
-                    {/* TAM Analysis */}
-                    <div className="p-4 border border-gray-200 rounded-lg space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-800">TAM (Total Mill Analyzer)</h3>
-                      <p className="text-sm text-gray-600">Evaluate entire Mill's performance.</p>
-                      
-                      <div className="space-y-4">
-                        {/* Machine Selection - Fixed Display */}
-                        <div>
-                          <Label className="text-sm font-medium mb-2 block">Selected Machines</Label>
-                          <div className="border border-gray-200 rounded p-3 bg-gray-50">
-                            <div className="grid grid-cols-1 gap-2">
-                              {machineOptions.map((machine, index) => (
-                                <div key={machine} className="flex items-center space-x-2">
-                                  <div className="w-2 h-2 bg-rice-primary rounded-full"></div>
-                                  <span className="text-sm font-medium text-gray-700">
-                                    {machine}
-                                  </span>
-                                </div>
-                              ))}
+                    {/* Mode-specific Configuration */}
+                    {selectedAnalysisMode && (
+                      <div className="border-t pt-6">
+                        {selectedAnalysisMode === "batch" && (
+                          <div className="space-y-4">
+                            <Label className="text-lg font-semibold">Batch Configuration</Label>
+                            <div className="max-w-md">
+                              <Label className="text-sm font-medium">Bin Number</Label>
+                              <Input
+                                type="number"
+                                value={batchInput}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Only allow numeric input
+                                  if (value === '' || /^\d+$/.test(value)) {
+                                    setBatchInput(value);
+                                  }
+                                }}
+                                placeholder="Enter Bin number"
+                                className="mt-1"
+                              />
                             </div>
                           </div>
-                        </div>
-                        
-                        {/* Series Selection */}
-                        <div>
-                          <Label className="text-sm font-medium">Series</Label>
-                          <Select value={tamSelectedSeries} onValueChange={setTamSelectedSeries}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select series" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {seriesOptions.map((series) => (
-                                <SelectItem key={series} value={series}>
-                                  {series}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        {/* Sampling Strategy */}
-                        <div>
-                          <Label className="text-sm font-medium mb-2 block">Sampling Strategy</Label>
-                          <div className="flex space-x-4 mb-2">
-                            <Button
-                              variant={samplingStrategy === "random" ? "default" : "outline"}
-                              onClick={() => setSamplingStrategy("random")}
-                              size="sm"
-                              className={samplingStrategy === "random" ? "bg-rice-primary hover:bg-rice-primary/90" : ""}
-                            >
-                              Random
-                            </Button>
-                            <Button
-                              variant={samplingStrategy === "systematic" ? "default" : "outline"}
-                              onClick={() => setSamplingStrategy("systematic")}
-                              size="sm"
-                              className={samplingStrategy === "systematic" ? "bg-rice-primary hover:bg-rice-primary/90" : ""}
-                            >
-                              Systematic
-                            </Button>
+                        )}
+
+                        {selectedAnalysisMode === "machine-wise" && (
+                          <div className="space-y-4">
+                            <Label className="text-lg font-semibold">Machine Configuration</Label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+                              <div>
+                                <Label className="text-sm font-medium">Machine Name</Label>
+                                <Select value={selectedMachine} onValueChange={setSelectedMachine}>
+                                  <SelectTrigger className="mt-1">
+                                    <SelectValue placeholder="Select machine" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {machineOptions.map((machine) => (
+                                      <SelectItem key={machine} value={machine}>
+                                        {machine}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div>
+                                <Label className="text-sm font-medium">Series</Label>
+                                <Select value={selectedSeries} onValueChange={setSelectedSeries}>
+                                  <SelectTrigger className="mt-1">
+                                    <SelectValue placeholder="Select series" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {seriesOptions.map((series) => (
+                                      <SelectItem key={series} value={series}>
+                                        {series}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
                           </div>
-                          
-                          {samplingStrategy === "systematic" && (
-                            <Input
-                              type="number"
-                              value={systematicValue}
-                              onChange={(e) => setSystematicValue(e.target.value)}
-                              placeholder="Enter systematic value"
-                              className="w-full"
-                            />
-                          )}
-                        </div>
+                        )}
+
+                        {selectedAnalysisMode === "tma" && (
+                          <div className="space-y-4">
+                            <Label className="text-lg font-semibold">TMA Configuration</Label>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              {/* Machine Selection - Fixed Display */}
+                              <div>
+                                <Label className="text-sm font-medium mb-2 block">Selected Machines</Label>
+                                <div className="border border-gray-200 rounded p-3 bg-gray-50">
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {machineOptions.map((machine) => (
+                                      <div key={machine} className="flex items-center space-x-2">
+                                        <div className="w-2 h-2 bg-rice-primary rounded-full"></div>
+                                        <span className="text-sm font-medium text-gray-700">
+                                          {machine}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-4">
+                                {/* Series Selection */}
+                                <div>
+                                  <Label className="text-sm font-medium">Series</Label>
+                                  <Select value={tmaSelectedSeries} onValueChange={setTmaSelectedSeries}>
+                                    <SelectTrigger className="mt-1">
+                                      <SelectValue placeholder="Select series" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {seriesOptions.map((series) => (
+                                        <SelectItem key={series} value={series}>
+                                          {series}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                
+                                {/* Sampling Strategy */}
+                                <div>
+                                  <Label className="text-sm font-medium mb-2 block">Sampling Strategy</Label>
+                                  <div className="flex space-x-4 mb-2">
+                                    <Button
+                                      variant={samplingStrategy === "random" ? "default" : "outline"}
+                                      onClick={() => setSamplingStrategy("random")}
+                                      size="sm"
+                                      className={samplingStrategy === "random" ? "bg-rice-primary hover:bg-rice-primary/90" : ""}
+                                    >
+                                      Random
+                                    </Button>
+                                    <Button
+                                      variant={samplingStrategy === "systematic" ? "default" : "outline"}
+                                      onClick={() => setSamplingStrategy("systematic")}
+                                      size="sm"
+                                      className={samplingStrategy === "systematic" ? "bg-rice-primary hover:bg-rice-primary/90" : ""}
+                                    >
+                                      Systematic
+                                    </Button>
+                                  </div>
+                                  
+                                  {samplingStrategy === "systematic" && (
+                                    <Input
+                                      type="number"
+                                      value={systematicValue}
+                                      onChange={(e) => setSystematicValue(e.target.value)}
+                                      placeholder="Enter systematic value"
+                                      className="w-full"
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedAnalysisMode === "individual" && (
+                          <div className="space-y-4">
+                            <Label className="text-lg font-semibold">Individual Analysis</Label>
+                            <p className="text-gray-600">Ready to analyze a single sample. Click Analyze to proceed.</p>
+                          </div>
+                        )}
                       </div>
-                      
-                      <Button 
-                        onClick={() => handleAnalyze("tam", { 
-                          machines: machineOptions,
-                          series: tamSelectedSeries,
-                          samplingStrategy,
-                          systematicValue: samplingStrategy === "systematic" ? systematicValue : undefined
-                        })}
-                        disabled={!isTamValid()}
-                        className="w-full bg-rice-primary hover:bg-rice-primary/90 disabled:bg-gray-300"
-                      >
-                        Analyze
-                      </Button>
-                    </div>
+                    )}
+
+                    {/* Single Analyze Button */}
+                    {selectedAnalysisMode && (
+                      <div className="flex justify-center pt-6 border-t">
+                        <Button 
+                          onClick={handleAnalyzeClick}
+                          disabled={!isAnalyzeEnabled()}
+                          className="bg-rice-primary hover:bg-rice-primary/90 disabled:bg-gray-300 px-12 py-3 text-lg font-semibold"
+                        >
+                          Analyze
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -8,7 +8,7 @@ const Manuals = () => {
   const manualSections = [
     {
       title: "Quick Start Guide",
-      description: "Get started with Rice Doctor in minutes",
+      description: "Get started with RAICE LABZ in minutes",
       icon: BookOpen,
       type: "PDF",
       size: "2.1 MB",
@@ -95,9 +95,9 @@ const Manuals = () => {
           <Card className="animate-fade-in">
             <CardContent className="p-6">
               <div className="text-center">
-                <h2 className="text-2xl font-bold text-rice-primary mb-4">Welcome to Rice Doctor Documentation</h2>
+                <h2 className="text-2xl font-bold text-rice-primary mb-4">Welcome to RAICE LABZ Documentation</h2>
                 <p className="text-gray-600 max-w-3xl mx-auto">
-                  Access comprehensive guides, tutorials, and documentation to help you get the most out of your Rice Doctor system. 
+                  Access comprehensive guides, tutorials, and documentation to help you get the most out of your RAICE LABZ system. 
                   From initial setup to advanced features, we've got you covered.
                 </p>
               </div>
@@ -217,7 +217,7 @@ const Manuals = () => {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="font-semibold text-gray-600">Software Version:</span>
-                  <p className="font-medium">Rice Doctor v2.1.0</p>
+                  <p className="font-medium">RAICE LABZ v2.1.0</p>
                 </div>
                 <div>
                   <span className="font-semibold text-gray-600">Build Date:</span>

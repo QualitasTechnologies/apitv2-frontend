@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { useMachine } from "@/contexts/MachineContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,23 +14,24 @@ import { Camera, Save, Trash2, Play, Pause, BarChart3, Percent, CheckCircle, Cir
 const LiveAnalysis = () => {
   const location = useLocation();
   const analysisData = location.state as any;
+  const { machines: contextMachines } = useMachine();
   
-  // Check if this is TAM analysis
-  const isTamAnalysis = analysisData?.analysisType === "tam";
-  const machines = isTamAnalysis ? analysisData?.machines || [] : [];
+  // Check if this is TMA analysis
+  const isTmaAnalysis = analysisData?.analysisType === "tma";
+  const machines = isTmaAnalysis ? (analysisData?.machines || contextMachines) : [];
   
-  // TAM Analysis state
+  // TMA Analysis state
   const [currentMachineIndex, setCurrentMachineIndex] = useState(0);
   const [completedMachines, setCompletedMachines] = useState<string[]>([]);
   const [accordionValue, setAccordionValue] = useState<string>(machines[0] || "");
   
-  // Sample progression state (per machine for TAM, global for others)
+  // Sample progression state (per machine for TMA, global for others)
   const [currentSample, setCurrentSample] = useState(1);
   const [completedSamples, setCompletedSamples] = useState<number[]>([]);
   const [sampleWeights, setSampleWeights] = useState<{[key: number]: string}>({
-    1: '',
-    2: '',
-    3: ''
+    1: '50',
+    2: '50',
+    3: '50'
   });
   
   // Analysis state
@@ -286,7 +288,7 @@ const LiveAnalysis = () => {
     
     setIsAnalyzing(!isAnalyzing);
     if (!isAnalyzing) {
-      console.log(`Starting analysis for Sample ${currentSample} with weight: ${sampleWeights[currentSample]}kg`);
+      console.log(`Starting analysis for Sample ${currentSample} with weight: ${sampleWeights[currentSample]}g`);
     } else {
       console.log("Stopping analysis");
       setMetrics(initialMetrics); // Reset to initial values
@@ -300,18 +302,18 @@ const LiveAnalysis = () => {
     
     setCompletedSamples(prev => [...prev, currentSample]);
     
-    if (isTamAnalysis) {
+    if (isTmaAnalysis) {
       const currentMachine = machines[currentMachineIndex];
-      console.log(`Sample ${currentSample} completed for machine ${currentMachine} with weight: ${sampleWeights[currentSample]}kg and results:`, metrics);
+      console.log(`Sample ${currentSample} completed for machine ${currentMachine} with weight: ${sampleWeights[currentSample]}g and results:`, metrics);
     } else {
-      console.log(`Sample ${currentSample} completed with weight: ${sampleWeights[currentSample]}kg and results:`, metrics);
+      console.log(`Sample ${currentSample} completed with weight: ${sampleWeights[currentSample]}g and results:`, metrics);
     }
     
     // Move to next sample if available
     if (currentSample < 3) {
       setCurrentSample(currentSample + 1);
       setMetrics(initialMetrics); // Reset metrics for new sample
-    } else if (isTamAnalysis && currentSample === 3) {
+    } else if (isTmaAnalysis && currentSample === 3) {
       // All samples completed for current machine, move to next machine
       handleCompleteMachine();
     }
@@ -324,7 +326,7 @@ const LiveAnalysis = () => {
     // Reset sample progression for next machine
     setCurrentSample(1);
     setCompletedSamples([]);
-    setSampleWeights({ 1: '', 2: '', 3: '' });
+    setSampleWeights({ 1: '50', 2: '50', 3: '50' });
     setMetrics(initialMetrics);
     
     // Move to next machine
@@ -346,7 +348,7 @@ const LiveAnalysis = () => {
     setMetrics(initialMetrics);
     setSampleWeights(prev => ({
       ...prev,
-      [currentSample]: ''
+      [currentSample]: '50'
     }));
   };
 
@@ -483,14 +485,118 @@ const LiveAnalysis = () => {
       
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Conditional Rendering: TAM Analysis vs Regular Analysis */}
-          {isTamAnalysis ? (
-            /* TAM Analysis - Machine Accordion */
+          {/* Sample Information - Moved to Top */}
+          <Card className="animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-rice-primary">
+                {isTmaAnalysis ? `${machines[currentMachineIndex]} - Sample ${currentSample} Information` : `Sample ${currentSample} Information`}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 text-sm">
+                <div>
+                  <span className="font-semibold text-gray-600">Sample ID:</span>
+                  <p className="font-medium">
+                    {isTmaAnalysis 
+                      ? `TMA-${machines[currentMachineIndex]?.replace(/\s+/g, '')}-S${currentSample}-${new Date().getTime().toString().slice(-6)}`
+                      : `RD-S${currentSample}-${new Date().getTime().toString().slice(-6)}`
+                    }
+                  </p>
+                </div>
+                {isTmaAnalysis && (
+                  <div>
+                    <span className="font-semibold text-gray-600">Machine:</span>
+                    <p className="font-medium">{machines[currentMachineIndex]}</p>
+                  </div>
+                )}
+                <div>
+                  <span className="font-semibold text-gray-600">Weight:</span>
+                  <p className="font-medium">
+                    {sampleWeights[currentSample] ? `${sampleWeights[currentSample]} g` : 'Not entered'}
+                  </p>
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-600">Status:</span>
+                  <p className={`font-medium ${
+                    completedSamples.includes(currentSample) ? 'text-green-600' : 
+                    isAnalyzing ? 'text-blue-600' : 'text-gray-600'
+                  }`}>
+                    {completedSamples.includes(currentSample) ? 'Completed' : 
+                     isAnalyzing ? 'Analyzing' : 'Pending'}
+                  </p>
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-600">Variety:</span>
+                  <p className="font-medium">{analysisData?.variety?.toUpperCase() || 'BASMATI'}</p>
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-600">Process:</span>
+                  <p className="font-medium">{analysisData?.process || 'Raw'}</p>
+                </div>
+              </div>
+              
+              {/* Progress Summary */}
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-semibold text-gray-600">
+                    {isTmaAnalysis ? 'Current Machine Progress:' : 'Overall Progress:'}
+                  </span>
+                  <div className="flex space-x-4">
+                    {[1, 2, 3].map((num) => (
+                      <div key={num} className="flex items-center space-x-1">
+                        <span className={`text-xs ${
+                          completedSamples.includes(num) ? 'text-green-600' : 
+                          num === currentSample ? 'text-rice-primary' : 'text-gray-400'
+                        }`}>
+                          S{num}
+                        </span>
+                        {completedSamples.includes(num) ? (
+                          <CheckCircle className="w-3 h-3 text-green-500" />
+                        ) : num === currentSample ? (
+                          <Circle className="w-3 h-3 text-rice-primary" />
+                        ) : (
+                          <Circle className="w-3 h-3 text-gray-300" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {isTmaAnalysis && (
+                  <div className="flex justify-between items-center text-sm mt-2">
+                    <span className="font-semibold text-gray-600">Machine Progress:</span>
+                    <div className="flex space-x-2">
+                      {machines.map((machine: string, index: number) => (
+                        <div key={machine} className="flex items-center space-x-1">
+                          <span className={`text-xs ${
+                            completedMachines.includes(machine) ? 'text-green-600' : 
+                            index === currentMachineIndex ? 'text-rice-primary' : 'text-gray-400'
+                          }`}>
+                            {machine.split(' ')[0]}
+                          </span>
+                          {completedMachines.includes(machine) ? (
+                            <CheckCircle className="w-3 h-3 text-green-500" />
+                          ) : index === currentMachineIndex ? (
+                            <Circle className="w-3 h-3 text-rice-primary" />
+                          ) : (
+                            <Circle className="w-3 h-3 text-gray-300" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          {/* Conditional Rendering: TMA Analysis vs Regular Analysis */}
+          {isTmaAnalysis ? (
+            /* TMA Analysis - Machine Accordion */
             <Card className="animate-fade-in">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-rice-primary">
                   <Settings className="w-6 h-6" />
-                  <span>TAM Analysis - Machine Progression</span>
+                  <span>TMA Analysis - Machine Progression</span>
                 </CardTitle>
                 <p className="text-sm text-gray-600">
                   Complete 3 samples for each machine - Machine {currentMachineIndex + 1} of {machines.length}
@@ -603,13 +709,13 @@ const LiveAnalysis = () => {
                                         
                                         <div className="space-y-2">
                                           <Label htmlFor={`weight-${sampleNum}`} className="text-xs font-medium">
-                                            Weight (kg)
+                                            Weight (g)
                                           </Label>
                                           <Input
                                             id={`weight-${sampleNum}`}
                                             type="number"
-                                            step="0.01"
-                                            placeholder="0.00"
+                                            step="1"
+                                            placeholder="50"
                                             value={sampleWeights[sampleNum]}
                                             onChange={(e) => handleWeightChange(sampleNum, e.target.value)}
                                             disabled={!isCurrent || isCompleted}
@@ -620,7 +726,7 @@ const LiveAnalysis = () => {
                                           />
                                           {isCompleted && (
                                             <p className="text-xs text-green-600 font-medium">
-                                              ✓ {sampleWeights[sampleNum]}kg
+                                              ✓ {sampleWeights[sampleNum]}g
                                             </p>
                                           )}
                                         </div>
@@ -739,13 +845,13 @@ const LiveAnalysis = () => {
                           
                           <div className="space-y-2">
                             <Label htmlFor={`weight-${sampleNum}`} className="text-sm font-medium">
-                              Weight (kg)
+                              Weight (g)
                             </Label>
                             <Input
                               id={`weight-${sampleNum}`}
                               type="number"
-                              step="0.01"
-                              placeholder="0.00"
+                              step="1"
+                              placeholder="50"
                               value={sampleWeights[sampleNum]}
                               onChange={(e) => handleWeightChange(sampleNum, e.target.value)}
                               disabled={!isCurrent || isCompleted}
@@ -756,7 +862,7 @@ const LiveAnalysis = () => {
                             />
                             {isCompleted && (
                               <p className="text-xs text-green-600 font-medium">
-                                ✓ Completed with {sampleWeights[sampleNum]}kg
+                                ✓ Completed with {sampleWeights[sampleNum]}g
                               </p>
                             )}
                           </div>
@@ -873,10 +979,10 @@ const LiveAnalysis = () => {
               <Card className="animate-fade-in mt-6" style={{ animationDelay: "200ms" }}>
                 <CardHeader>
                   <CardTitle className="text-rice-primary">
-                    {isTamAnalysis ? `${machines[currentMachineIndex]} - Sample ${currentSample} Controls` : `Sample ${currentSample} Controls`}
+                    {isTmaAnalysis ? `${machines[currentMachineIndex]} - Sample ${currentSample} Controls` : `Sample ${currentSample} Controls`}
                   </CardTitle>
                   <p className="text-sm text-gray-600">
-                    {sampleWeights[currentSample] ? `Weight: ${sampleWeights[currentSample]}kg` : 'Enter weight to begin'}
+                    {sampleWeights[currentSample] ? `Weight: ${sampleWeights[currentSample]}g` : 'Enter weight to begin'}
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -913,7 +1019,7 @@ const LiveAnalysis = () => {
 
                     {/* Progress Info */}
                     <div className="pt-3 border-t text-sm text-gray-600">
-                      {isTamAnalysis ? (
+                      {isTmaAnalysis ? (
                         <>
                           <div className="flex justify-between">
                             <span>Current Machine:</span>
@@ -937,7 +1043,7 @@ const LiveAnalysis = () => {
                           </div>
                           {currentMachineIndex === machines.length - 1 && currentSample === 3 && completedSamples.includes(3) && (
                             <div className="mt-2 p-2 bg-green-50 rounded-lg text-green-700 text-center font-medium">
-                              ✓ TAM Analysis Complete!
+                              ✓ TMA Analysis Complete!
                             </div>
                           )}
                         </>
@@ -964,7 +1070,7 @@ const LiveAnalysis = () => {
               </Card>
             </div>
 
-            {/* Detailed Metrics with Individual Bars */}
+            {/* Detailed Metrics with Accordion */}
             <div className="xl:col-span-2">
               <Card className="animate-fade-in" style={{ animationDelay: "100ms" }}>
                 <CardHeader>
@@ -974,194 +1080,123 @@ const LiveAnalysis = () => {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-6">
-                    {/* Good Rice Section */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-green-700 mb-3 flex items-center">
-                        <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                        Good Rice ({totals.goodRice.toFixed(1)}%)
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {getAllMetrics().filter(m => m.category === 'Good Rice').map((metric, idx) => (
-                          <MetricBar key={`good-${idx}`} metric={metric} />
-                        ))}
-                      </div>
-                    </div>
+                  <Accordion type="multiple" defaultValue={["good-rice", "rejections", "inorganic-foreign", "quality-indices"]} className="w-full">
+                    {/* Good Rice Accordion */}
+                    <AccordionItem value="good-rice" className="border rounded-lg mb-2">
+                      <AccordionTrigger className="px-4 hover:no-underline">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          <span className="text-lg font-semibold text-green-700">
+                            Good Rice ({totals.goodRice.toFixed(1)}%)
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {getAllMetrics().filter(m => m.category === 'Good Rice').map((metric, idx) => (
+                            <MetricBar key={`good-${idx}`} metric={metric} />
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                    {/* Harvest Rejections Section */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-red-700 mb-3 flex items-center">
-                        <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                        Harvest Rejections
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {getAllMetrics().filter(m => m.category === 'Harvest Rejections').map((metric, idx) => (
-                          <MetricBar key={`harvest-${idx}`} metric={metric} />
-                        ))}
-                      </div>
-                    </div>
+                    {/* Rejections Accordion */}
+                    <AccordionItem value="rejections" className="border rounded-lg mb-2">
+                      <AccordionTrigger className="px-4 hover:no-underline">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                          <span className="text-lg font-semibold text-red-700">
+                            Rejections ({totals.rejections.toFixed(1)}%)
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <div className="space-y-6">
+                          {/* Harvest Rejections */}
+                          <div>
+                            <h4 className="text-md font-semibold text-red-600 mb-3 flex items-center">
+                              <div className="w-2 h-2 bg-red-400 rounded-full mr-2"></div>
+                              Harvest Rejections
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {getAllMetrics().filter(m => m.category === 'Harvest Rejections').map((metric, idx) => (
+                                <MetricBar key={`harvest-${idx}`} metric={metric} />
+                              ))}
+                            </div>
+                          </div>
 
-                    {/* Process Rejections Section */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-pink-700 mb-3 flex items-center">
-                        <div className="w-3 h-3 bg-pink-500 rounded-full mr-2"></div>
-                        Process Rejections
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {getAllMetrics().filter(m => m.category === 'Process Rejections').map((metric, idx) => (
-                          <MetricBar key={`process-${idx}`} metric={metric} />
-                        ))}
-                      </div>
-                    </div>
+                          {/* Process Rejections */}
+                          <div>
+                            <h4 className="text-md font-semibold text-pink-600 mb-3 flex items-center">
+                              <div className="w-2 h-2 bg-pink-400 rounded-full mr-2"></div>
+                              Process Rejections
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {getAllMetrics().filter(m => m.category === 'Process Rejections').map((metric, idx) => (
+                                <MetricBar key={`process-${idx}`} metric={metric} />
+                              ))}
+                            </div>
+                          </div>
 
-                    {/* Organic Foreign Matter Section */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-orange-700 mb-3 flex items-center">
-                        <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
-                        Organic Foreign Matter
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {getAllMetrics().filter(m => m.category === 'Organic Foreign Matter').map((metric, idx) => (
-                          <MetricBar key={`organic-${idx}`} metric={metric} />
-                        ))}
-                      </div>
-                    </div>
+                          {/* Organic Foreign Matter */}
+                          <div>
+                            <h4 className="text-md font-semibold text-orange-600 mb-3 flex items-center">
+                              <div className="w-2 h-2 bg-orange-400 rounded-full mr-2"></div>
+                              Organic Foreign Matter
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {getAllMetrics().filter(m => m.category === 'Organic Foreign Matter').map((metric, idx) => (
+                                <MetricBar key={`organic-${idx}`} metric={metric} />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                    {/* Inorganic Foreign Matter Section */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-700 mb-3 flex items-center">
-                        <div className="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
-                        Inorganic Foreign Matter
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {getAllMetrics().filter(m => m.category === 'Inorganic Foreign Matter').map((metric, idx) => (
-                          <MetricBar key={`inorganic-${idx}`} metric={metric} />
-                        ))}
-                      </div>
-                    </div>
+                    {/* Inorganic Foreign Matter Accordion */}
+                    <AccordionItem value="inorganic-foreign" className="border rounded-lg mb-2">
+                      <AccordionTrigger className="px-4 hover:no-underline">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                          <span className="text-lg font-semibold text-gray-700">
+                            Inorganic Foreign Matter ({(totals.foreignMatter - Object.values(metrics.foreignMatter.organic).reduce((sum, val) => sum + val, 0)).toFixed(1)}%)
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {getAllMetrics().filter(m => m.category === 'Inorganic Foreign Matter').map((metric, idx) => (
+                            <MetricBar key={`inorganic-${idx}`} metric={metric} />
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                    {/* Quality & Indices Section */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-blue-700 mb-3 flex items-center">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                        Quality & Indices
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {getAllMetrics().filter(m => m.category === 'Quality & Indices').map((metric, idx) => (
-                          <MetricBar key={`quality-${idx}`} metric={metric} />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                    {/* Quality & Indices Accordion */}
+                    <AccordionItem value="quality-indices" className="border rounded-lg mb-2">
+                      <AccordionTrigger className="px-4 hover:no-underline">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                          <span className="text-lg font-semibold text-blue-700">
+                            Quality & Indices
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {getAllMetrics().filter(m => m.category === 'Quality & Indices').map((metric, idx) => (
+                            <MetricBar key={`quality-${idx}`} metric={metric} />
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                 </CardContent>
               </Card>
             </div>
           </div>
 
-          {/* Sample Information */}
-          <Card className="animate-fade-in" style={{ animationDelay: "300ms" }}>
-            <CardHeader>
-              <CardTitle className="text-rice-primary">
-                {isTamAnalysis ? `${machines[currentMachineIndex]} - Sample ${currentSample} Information` : `Sample ${currentSample} Information`}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 text-sm">
-                <div>
-                  <span className="font-semibold text-gray-600">Sample ID:</span>
-                  <p className="font-medium">
-                    {isTamAnalysis 
-                      ? `TAM-${machines[currentMachineIndex]?.replace(/\s+/g, '')}-S${currentSample}-${new Date().getTime().toString().slice(-6)}`
-                      : `RD-S${currentSample}-${new Date().getTime().toString().slice(-6)}`
-                    }
-                  </p>
-                </div>
-                {isTamAnalysis && (
-                  <div>
-                    <span className="font-semibold text-gray-600">Machine:</span>
-                    <p className="font-medium">{machines[currentMachineIndex]}</p>
-                  </div>
-                )}
-                <div>
-                  <span className="font-semibold text-gray-600">Weight:</span>
-                  <p className="font-medium">
-                    {sampleWeights[currentSample] ? `${sampleWeights[currentSample]} kg` : 'Not entered'}
-                  </p>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-600">Status:</span>
-                  <p className={`font-medium ${
-                    completedSamples.includes(currentSample) ? 'text-green-600' : 
-                    isAnalyzing ? 'text-blue-600' : 'text-gray-600'
-                  }`}>
-                    {completedSamples.includes(currentSample) ? 'Completed' : 
-                     isAnalyzing ? 'Analyzing' : 'Pending'}
-                  </p>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-600">Variety:</span>
-                  <p className="font-medium">{analysisData?.variety?.toUpperCase() || 'BASMATI'}</p>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-600">Process:</span>
-                  <p className="font-medium">{analysisData?.process || 'Raw'}</p>
-                </div>
-              </div>
-              
-              {/* Progress Summary */}
-              <div className="mt-4 pt-4 border-t">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="font-semibold text-gray-600">
-                    {isTamAnalysis ? 'Current Machine Progress:' : 'Overall Progress:'}
-                  </span>
-                  <div className="flex space-x-4">
-                    {[1, 2, 3].map((num) => (
-                      <div key={num} className="flex items-center space-x-1">
-                        <span className={`text-xs ${
-                          completedSamples.includes(num) ? 'text-green-600' : 
-                          num === currentSample ? 'text-rice-primary' : 'text-gray-400'
-                        }`}>
-                          S{num}
-                        </span>
-                        {completedSamples.includes(num) ? (
-                          <CheckCircle className="w-3 h-3 text-green-500" />
-                        ) : num === currentSample ? (
-                          <Circle className="w-3 h-3 text-rice-primary" />
-                        ) : (
-                          <Circle className="w-3 h-3 text-gray-300" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {isTamAnalysis && (
-                  <div className="flex justify-between items-center text-sm mt-2">
-                    <span className="font-semibold text-gray-600">Machine Progress:</span>
-                    <div className="flex space-x-2">
-                      {machines.map((machine: string, index: number) => (
-                        <div key={machine} className="flex items-center space-x-1">
-                          <span className={`text-xs ${
-                            completedMachines.includes(machine) ? 'text-green-600' : 
-                            index === currentMachineIndex ? 'text-rice-primary' : 'text-gray-400'
-                          }`}>
-                            {machine.split(' ')[0]}
-                          </span>
-                          {completedMachines.includes(machine) ? (
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                          ) : index === currentMachineIndex ? (
-                            <Circle className="w-3 h-3 text-rice-primary" />
-                          ) : (
-                            <Circle className="w-3 h-3 text-gray-300" />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

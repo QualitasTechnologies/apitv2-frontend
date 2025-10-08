@@ -8,8 +8,23 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, Download, Factory, Package, User, Settings, Microscope } from "lucide-react";
+import { CalendarIcon, Download, Factory, Package, User, Settings, Microscope, Eye, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface SampleData {
   sampleNumber: number;
@@ -18,6 +33,23 @@ interface SampleData {
   rejection: number;
   foreignMatter: number;
   completed: boolean;
+}
+
+interface GrainData {
+  grainId: string;
+  grainClass: string;
+  grainMetrics: {
+    length?: string;
+    breadth?: string;
+    grainArea?: string;
+    chalkyArea?: string;
+    whitenessIndex?: string;
+    meanRed?: string;
+    meanGreen?: string;
+    meanBlue?: string;
+  };
+  grainImage: string;
+  chalkyArea?: string;
 }
 
 interface ProcessData {
@@ -32,12 +64,81 @@ interface ProcessData {
   overallGoodRice: number;
   overallRejection: number;
   overallForeignMatter: number;
+  grainData?: GrainData[];
 }
 
 const DataReports = () => {
   const [fromDate, setFromDate] = useState<Date>();
   const [toDate, setToDate] = useState<Date>();
   const [reportType, setReportType] = useState("individual");
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+
+  // Sample grain data
+  const sampleGrainData: GrainData[] = [
+    {
+      grainId: "IND-7289-081025-A_21",
+      grainClass: "paddy",
+      grainMetrics: {},
+      grainImage: "/placeholder.svg",
+      chalkyArea: "No data available"
+    },
+    {
+      grainId: "IND-7289-081025-A_19",
+      grainClass: "paddy",
+      grainMetrics: {},
+      grainImage: "/placeholder.svg",
+      chalkyArea: "No data available"
+    },
+    {
+      grainId: "IND-7289-081025-A_18",
+      grainClass: "paddy",
+      grainMetrics: {},
+      grainImage: "/placeholder.svg",
+      chalkyArea: "No data available"
+    },
+    {
+      grainId: "IND-7289-081025-A_16",
+      grainClass: "paddy",
+      grainMetrics: {},
+      grainImage: "/placeholder.svg",
+      chalkyArea: "No data available"
+    },
+    {
+      grainId: "IND-7289-081025-A_14",
+      grainClass: "headrice",
+      grainMetrics: {
+        length: "5.63mm",
+        breadth: "1.68mm",
+        grainArea: "3216px²",
+        chalkyArea: "596px²",
+        whitenessIndex: "38.70",
+        meanRed: "100.37",
+        meanGreen: "97.31",
+        meanBlue: "92.54"
+      },
+      grainImage: "/placeholder.svg",
+      chalkyArea: "/placeholder.svg"
+    },
+    {
+      grainId: "IND-7289-081025-A_13",
+      grainClass: "paddy",
+      grainMetrics: {},
+      grainImage: "/placeholder.svg",
+      chalkyArea: "No data available"
+    },
+    {
+      grainId: "IND-7289-081025-A_12",
+      grainClass: "headrice",
+      grainMetrics: {
+        length: "4.27mm",
+        breadth: "1.91mm",
+        grainArea: "6150px²"
+      },
+      grainImage: "/placeholder.svg",
+      chalkyArea: "/placeholder.svg"
+    }
+  ];
   
   // Sample data for individual sessions
   const individualSessions: ProcessData[] = [
@@ -56,7 +157,8 @@ const DataReports = () => {
       totalQuantity: 7.5,
       overallGoodRice: 94.4,
       overallRejection: 4.1,
-      overallForeignMatter: 0.3
+      overallForeignMatter: 0.3,
+      grainData: sampleGrainData
     },
     {
       id: "IND002",
@@ -73,7 +175,8 @@ const DataReports = () => {
       totalQuantity: 6.7,
       overallGoodRice: 92.5,
       overallRejection: 5.3,
-      overallForeignMatter: 0.5
+      overallForeignMatter: 0.5,
+      grainData: sampleGrainData
     }
   ];
 
@@ -94,7 +197,8 @@ const DataReports = () => {
       totalQuantity: 15.0,
       overallGoodRice: 95.1,
       overallRejection: 3.2,
-      overallForeignMatter: 0.1
+      overallForeignMatter: 0.1,
+      grainData: sampleGrainData
     },
     {
       id: "BAT002",
@@ -111,7 +215,8 @@ const DataReports = () => {
       totalQuantity: 14.7,
       overallGoodRice: 93.7,
       overallRejection: 4.8,
-      overallForeignMatter: 0.4
+      overallForeignMatter: 0.4,
+      grainData: sampleGrainData
     }
   ];
 
@@ -132,7 +237,8 @@ const DataReports = () => {
       totalQuantity: 9.6,
       overallGoodRice: 94.2,
       overallRejection: 3.8,
-      overallForeignMatter: 0.2
+      overallForeignMatter: 0.2,
+      grainData: sampleGrainData
     },
     {
       id: "MAC002",
@@ -149,17 +255,18 @@ const DataReports = () => {
       totalQuantity: 8.8,
       overallGoodRice: 91.9,
       overallRejection: 6.2,
-      overallForeignMatter: 0.7
+      overallForeignMatter: 0.7,
+      grainData: sampleGrainData
     }
   ];
 
-  // Sample data for TAM sessions
-  const tamSessions: ProcessData[] = [
+  // Sample data for TMA sessions
+  const tmaSessions: ProcessData[] = [
     {
-      id: "TAM001",
-      name: "TAM Analysis - Complete Mill Run",
+      id: "TMA001",
+      name: "TMA Analysis - Complete Mill Run",
       date: "2025-01-22",
-      sessionType: "tam",
+      sessionType: "tma",
       variety: "BASMATI",
       process: "Raw",
       samples: [
@@ -170,13 +277,14 @@ const DataReports = () => {
       totalQuantity: 30.0,
       overallGoodRice: 96.3,
       overallRejection: 2.9,
-      overallForeignMatter: 0.2
+      overallForeignMatter: 0.2,
+      grainData: sampleGrainData
     },
     {
-      id: "TAM002",
-      name: "TAM Analysis - Multi-Machine Setup",
+      id: "TMA002",
+      name: "TMA Analysis - Multi-Machine Setup",
       date: "2025-03-12",
-      sessionType: "tam",
+      sessionType: "tma",
       variety: "LONG_GRAIN",
       process: "Parboiled",
       samples: [
@@ -187,7 +295,8 @@ const DataReports = () => {
       totalQuantity: 29.3,
       overallGoodRice: 92.4,
       overallRejection: 5.5,
-      overallForeignMatter: 0.6
+      overallForeignMatter: 0.6,
+      grainData: sampleGrainData
     }
   ];
 
@@ -205,8 +314,8 @@ const DataReports = () => {
       case "machine":
         processes = machineWiseSessions;
         break;
-      case "tam":
-        processes = tamSessions;
+      case "tma":
+        processes = tmaSessions;
         break;
       default:
         processes = individualSessions;
@@ -239,8 +348,8 @@ const DataReports = () => {
       case "machine":
         pdfFileName = "machine_analysis_report.pdf";
         break;
-      case "tam":
-        pdfFileName = "tam_analysis_report.pdf";
+      case "tma":
+        pdfFileName = "tma_analysis_report.pdf";
         break;
       default:
         pdfFileName = "analysis_report.pdf";
@@ -269,12 +378,148 @@ const DataReports = () => {
         return { icon: Package, label: "Batch Sessions", description: "Batch-wise analysis reports", color: "text-green-600" };
       case "machine":
         return { icon: Factory, label: "Machine Wise Sessions", description: "Individual machine line reports", color: "text-blue-600" };
-      case "tam":
-        return { icon: Microscope, label: "TAM Sessions", description: "Total Mill Analyser reports", color: "text-orange-600" };
+      case "tma":
+        return { icon: Microscope, label: "TMA Sessions", description: "Total Mill Analyser reports", color: "text-orange-600" };
       default:
         return { icon: User, label: "Individual Sessions", description: "Single session analysis reports", color: "text-purple-600" };
     }
   };
+
+  const handleImageClick = (imageUrl: string) => {
+    setSelectedImageUrl(imageUrl);
+    setIsImageDialogOpen(true);
+  };
+
+  const GrainDataDialog = ({ grainData }: { grainData: GrainData[] }) => (
+    <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle className="text-rice-primary">Detailed Grain Data</DialogTitle>
+      </DialogHeader>
+      <div className="mt-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Grain ID</TableHead>
+              <TableHead>Grain Class</TableHead>
+              <TableHead>Grain metrics</TableHead>
+              <TableHead>Grain Image</TableHead>
+              <TableHead>Chalky area (image)</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {grainData.map((grain) => (
+              <TableRow key={grain.grainId}>
+                <TableCell className="font-medium">{grain.grainId}</TableCell>
+                <TableCell>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    grain.grainClass === 'headrice' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {grain.grainClass}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  {Object.keys(grain.grainMetrics).length > 0 ? (
+                    <div className="space-y-1 text-sm">
+                      {grain.grainMetrics.length && (
+                        <div>Length: <span className="font-semibold">{grain.grainMetrics.length}</span></div>
+                      )}
+                      {grain.grainMetrics.breadth && (
+                        <div>Breadth: <span className="font-semibold">{grain.grainMetrics.breadth}</span></div>
+                      )}
+                      {grain.grainMetrics.grainArea && (
+                        <div>Grain Area: <span className="font-semibold">{grain.grainMetrics.grainArea}</span></div>
+                      )}
+                      {grain.grainMetrics.chalkyArea && (
+                        <div>Chalky Area: <span className="font-semibold">{grain.grainMetrics.chalkyArea}</span></div>
+                      )}
+                      {grain.grainMetrics.whitenessIndex && (
+                        <div>Whiteness Index: <span className="font-semibold">{grain.grainMetrics.whitenessIndex}</span></div>
+                      )}
+                      {grain.grainMetrics.meanRed && (
+                        <div>Mean Red: <span className="font-semibold">{grain.grainMetrics.meanRed}</span></div>
+                      )}
+                      {grain.grainMetrics.meanGreen && (
+                        <div>Mean Green: <span className="font-semibold">{grain.grainMetrics.meanGreen}</span></div>
+                      )}
+                      {grain.grainMetrics.meanBlue && (
+                        <div>Mean Blue: <span className="font-semibold">{grain.grainMetrics.meanBlue}</span></div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-gray-500 text-sm">No data available</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="relative">
+                    <img 
+                      src={grain.grainImage} 
+                      alt={`Grain ${grain.grainId}`}
+                      className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => handleImageClick(grain.grainImage)}
+                    />
+                    <button
+                      onClick={() => handleImageClick(grain.grainImage)}
+                      className="absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70 transition-all"
+                    >
+                      <Eye className="w-3 h-3" />
+                    </button>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {grain.chalkyArea && grain.chalkyArea !== "No data available" ? (
+                    <div className="relative">
+                      <img 
+                        src={grain.chalkyArea} 
+                        alt={`Chalky area for ${grain.grainId}`}
+                        className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => handleImageClick(grain.chalkyArea!)}
+                      />
+                      <button
+                        onClick={() => handleImageClick(grain.chalkyArea!)}
+                        className="absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70 transition-all"
+                      >
+                        <Eye className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-gray-500 text-sm">No data available</span>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </DialogContent>
+  );
+
+  const ImageViewDialog = () => (
+    <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between">
+            <span>Full Image View</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsImageDialogOpen(false)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
+        {selectedImageUrl && (
+          <div className="flex justify-center">
+            <img 
+              src={selectedImageUrl} 
+              alt="Full view"
+              className="max-w-full max-h-[70vh] object-contain rounded border"
+            />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -394,11 +639,11 @@ const DataReports = () => {
                     </div>
                     
                     <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                      <RadioGroupItem value="tam" id="tam" />
-                      <Label htmlFor="tam" className="cursor-pointer flex items-center space-x-3 flex-1">
+                      <RadioGroupItem value="tma" id="tma" />
+                      <Label htmlFor="tma" className="cursor-pointer flex items-center space-x-3 flex-1">
                         <Microscope className="w-5 h-5 text-orange-600" />
                         <div>
-                          <div className="font-semibold">TAM Sessions</div>
+                          <div className="font-semibold">TMA Sessions</div>
                           <div className="text-sm text-gray-600">Total Mill Analyser reports</div>
                         </div>
                       </Label>
@@ -449,7 +694,7 @@ const DataReports = () => {
                             </div>
                           </div>
                           
-                          <div className="lg:ml-6">
+                          <div className="lg:ml-6 flex flex-col sm:flex-row gap-2">
                             <Button
                               onClick={() => handleDownloadReport(process.id, process.name)}
                               className="bg-rice-primary hover:bg-rice-primary/90 text-white px-6 py-2"
@@ -457,6 +702,20 @@ const DataReports = () => {
                               <Download className="w-4 h-4 mr-2" />
                               Download Report
                             </Button>
+                            {process.grainData && (
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className="border-rice-primary text-rice-primary hover:bg-rice-primary hover:text-white px-6 py-2"
+                                  >
+                                    <Eye className="w-4 h-4 mr-2" />
+                                    Detailed Grain Data
+                                  </Button>
+                                </DialogTrigger>
+                                <GrainDataDialog grainData={process.grainData} />
+                              </Dialog>
+                            )}
                           </div>
                         </div>
 
@@ -547,6 +806,9 @@ const DataReports = () => {
           </Card>
         </div>
       </div>
+      
+      {/* Image View Dialog */}
+      <ImageViewDialog />
     </div>
   );
 };

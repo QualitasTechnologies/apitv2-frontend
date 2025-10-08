@@ -62,7 +62,7 @@ interface DateRange {
 
 interface AnalyticsFilters {
   dateRange: DateRange;
-  viewMode: 'machine-wise' | 'batch-wise';
+  viewMode: 'machine-wise' | 'batch-wise' | 'individual' | 'tma-analysis';
   selectedMachine?: string;
   chartType: 'bar' | 'pie' | 'line';
   selectedCategories: string[];
@@ -309,8 +309,8 @@ const Analytics = () => {
                     value={filters.viewMode}
                     onValueChange={(value) => setFilters(prev => ({ 
                       ...prev, 
-                      viewMode: value as 'machine-wise' | 'batch-wise',
-                      selectedMachine: value === 'batch-wise' ? undefined : prev.selectedMachine
+                      viewMode: value as 'machine-wise' | 'batch-wise' | 'individual' | 'tma-analysis',
+                      selectedMachine: (value === 'batch-wise' || value === 'individual' || value === 'tma-analysis') ? undefined : prev.selectedMachine
                     }))}
                     className="flex flex-col space-y-2"
                   >
@@ -321,6 +321,14 @@ const Analytics = () => {
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="batch-wise" id="batch-wise" />
                       <Label htmlFor="batch-wise" className="text-sm cursor-pointer">Batch-wise</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="individual" id="individual" />
+                      <Label htmlFor="individual" className="text-sm cursor-pointer">Individual</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="tma-analysis" id="tma-analysis" />
+                      <Label htmlFor="tma-analysis" className="text-sm cursor-pointer">TMA Analysis</Label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -446,7 +454,11 @@ const Analytics = () => {
               <CardTitle className="text-rice-primary">
                 {filters.viewMode === 'machine-wise' 
                   ? `${machineOptions.find(m => m.value === filters.selectedMachine)?.label || 'Machine'} Analysis`
-                  : 'Batch Analysis'
+                  : filters.viewMode === 'batch-wise'
+                    ? 'Batch Analysis'
+                    : filters.viewMode === 'individual'
+                      ? 'Individual Session Analysis'
+                      : 'TMA Analysis'
                 } - {filters.chartType.charAt(0).toUpperCase() + filters.chartType.slice(1)} Chart
               </CardTitle>
             </CardHeader>

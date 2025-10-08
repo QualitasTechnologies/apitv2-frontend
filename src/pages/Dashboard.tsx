@@ -162,7 +162,7 @@ const Dashboard = () => {
 
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200 hover:border-blue-300 transition-all duration-300">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-gray-600 uppercase tracking-wide">RGB Index</span>
+                    <span className="text-sm font-medium text-gray-600 uppercase tracking-wide">Whiteness Index</span>
                   </div>
                   <div className="text-2xl font-bold text-blue-700">73</div>
                 </div>
